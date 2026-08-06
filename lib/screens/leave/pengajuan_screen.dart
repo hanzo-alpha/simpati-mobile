@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../config/theme.dart';
-import '../../services/api_service.dart';
 
 class PengajuanScreen extends StatefulWidget {
   const PengajuanScreen({super.key});
@@ -14,7 +13,6 @@ class PengajuanScreen extends StatefulWidget {
 class _PengajuanScreenState extends State<PengajuanScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final ApiService _api = ApiService();
   final _formKey = GlobalKey<FormState>();
 
   // Form state

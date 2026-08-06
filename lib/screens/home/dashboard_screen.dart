@@ -126,7 +126,9 @@ class _DashboardScreenState extends State<DashboardScreen>
       if (!mounted) return;
       setState(() => _currentPosition = position);
       _calculateDistance();
-    } catch (e) {}
+    } catch (e) {
+      debugPrint('Error determining position: $e');
+    }
   }
 
   void _calculateDistance() {
