@@ -21,6 +21,51 @@ class _ApprovalScreenState extends State<ApprovalScreen> {
     _loadRequests();
   }
 
+  String _formatIndoDate(String? rawDate) {
+    if (rawDate == null || rawDate.isEmpty) return '-';
+    try {
+      final dt = DateTime.parse(rawDate);
+      final monthsIndo = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'Mei',
+        'Jun',
+        'Jul',
+        'Agu',
+        'Sep',
+        'Okt',
+        'Nov',
+        'Des'
+      ];
+      final day = dt.day.toString().padLeft(2, '0');
+      final month = monthsIndo[dt.month - 1];
+      final year = dt.year;
+      return '$day $month $year';
+    } catch (_) {
+      return rawDate;
+    }
+  }
+
+  String _getTypeLabel(String? rawType) {
+    if (rawType == null) return 'Pengajuan';
+    switch (rawType.toLowerCase()) {
+      case 'cuti':
+        return 'Cuti Tahunan';
+      case 'sakit':
+        return 'Izin Sakit';
+      case 'dinas_luar':
+      case 'dinas luar':
+        return 'Dinas Luar (DL)';
+      case 'dinas_dalam':
+      case 'dinas dalam':
+        return 'Dinas Dalam (DD)';
+      default:
+        return rawType;
+    }
+  }
+
   Future<void> _loadRequests() async {
     setState(() => _isLoading = true);
     try {
@@ -28,8 +73,9 @@ class _ApprovalScreenState extends State<ApprovalScreen> {
         status: _selectedFilter == 'all' ? null : _selectedFilter,
       );
       if (mounted) {
+        final List data = response.data['data'] ?? response.data ?? [];
         setState(() {
-          _requests = response.data['data'] ?? [];
+          _requests = data;
           _isLoading = false;
         });
       }
@@ -143,7 +189,10 @@ class _ApprovalScreenState extends State<ApprovalScreen> {
         backgroundColor: AppTheme.navy900,
         elevation: 0,
         actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadRequests),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadRequests,
+          ),
         ],
       ),
       body: Column(
@@ -151,16 +200,19 @@ class _ApprovalScreenState extends State<ApprovalScreen> {
           // Filter Bar
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              children: [
-                _buildFilterChip('Semua', 'all'),
-                const SizedBox(width: 8),
-                _buildFilterChip('Menunggu', 'menunggu'),
-                const SizedBox(width: 8),
-                _buildFilterChip('Disetujui', 'disetujui'),
-                const SizedBox(width: 8),
-                _buildFilterChip('Ditolak', 'ditolak'),
-              ],
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildFilterChip('Semua', 'all'),
+                  const SizedBox(width: 8),
+                  _buildFilterChip('Menunggu', 'menunggu'),
+                  const SizedBox(width: 8),
+                  _buildFilterChip('Disetujui', 'disetujui'),
+                  const SizedBox(width: 8),
+                  _buildFilterChip('Ditolak', 'ditolak'),
+                ],
+              ),
             ),
           ),
 
@@ -182,7 +234,7 @@ class _ApprovalScreenState extends State<ApprovalScreen> {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          'Tidak ada pengajuan untuk ditinjau',
+                          'Tidak ada pengajuan bawahan untuk ditinjau',
                           style: TextStyle(
                             color: Colors.grey[400],
                             fontSize: 14,
@@ -248,6 +300,9 @@ class _ApprovalScreenState extends State<ApprovalScreen> {
       statusColor = Colors.orange;
     }
 
+    final startDateStr = _formatIndoDate(req['tanggal_mulai']);
+    final endDateStr = _formatIndoDate(req['tanggal_selesai']);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(16),
@@ -264,7 +319,7 @@ class _ApprovalScreenState extends State<ApprovalScreen> {
             children: [
               Expanded(
                 child: Text(
-                  user['name'] ?? 'ASN',
+                  user['name'] ?? 'Pegawai ASN',
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -301,10 +356,10 @@ class _ApprovalScreenState extends State<ApprovalScreen> {
           const Divider(color: Colors.white12, height: 20),
           Row(
             children: [
-              Icon(Icons.category_outlined, size: 14, color: AppTheme.teal500),
+              const Icon(Icons.category_outlined, size: 14, color: AppTheme.teal500),
               const SizedBox(width: 6),
               Text(
-                'Jenis: ${req['type'] ?? '-'}',
+                _getTypeLabel(req['type']),
                 style: const TextStyle(
                   color: Colors.white70,
                   fontSize: 12,
@@ -312,10 +367,10 @@ class _ApprovalScreenState extends State<ApprovalScreen> {
                 ),
               ),
               const Spacer(),
-              Icon(Icons.date_range, size: 14, color: AppTheme.teal500),
+              const Icon(Icons.date_range, size: 14, color: AppTheme.teal500),
               const SizedBox(width: 6),
               Text(
-                '${req['tanggal_mulai']} s/d ${req['tanggal_selesai']}',
+                '$startDateStr s/d $endDateStr',
                 style: const TextStyle(color: Colors.white70, fontSize: 12),
               ),
             ],

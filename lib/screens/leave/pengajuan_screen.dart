@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../config/theme.dart';
+import '../../services/api_service.dart';
 
 class PengajuanScreen extends StatefulWidget {
   const PengajuanScreen({super.key});
@@ -14,9 +15,10 @@ class _PengajuanScreenState extends State<PengajuanScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final _formKey = GlobalKey<FormState>();
+  final ApiService _api = ApiService();
 
   // Form state
-  String? _selectedType = 'Sakit';
+  String _selectedType = 'Cuti';
   DateTime _startDate = DateTime.now();
   DateTime _endDate = DateTime.now();
   final _reasonController = TextEditingController();
@@ -30,7 +32,6 @@ class _PengajuanScreenState extends State<PengajuanScreen>
   final List<String> _types = [
     'Cuti',
     'Sakit',
-    'Ijin',
     'Dinas Luar',
     'Dinas Dalam',
   ];
@@ -50,29 +51,17 @@ class _PengajuanScreenState extends State<PengajuanScreen>
   }
 
   Future<void> _loadHistory() async {
+    setState(() => _isLoadingHistory = true);
     try {
-      await Future.delayed(const Duration(seconds: 1));
+      final response = await _api.getLeaveRequests();
       if (!mounted) return;
+      final List data = response.data['data'] ?? response.data ?? [];
       setState(() {
-        _history = [
-          {
-            'type': 'Sakit',
-            'start': '2026-03-01',
-            'end': '2026-03-03',
-            'status': 'Disetujui',
-            'reason': 'Demam tinggi dan butuh istirahat total.',
-          },
-          {
-            'type': 'Cuti',
-            'start': '2026-04-10',
-            'end': '2026-04-12',
-            'status': 'Menunggu',
-            'reason': 'Urusan keluarga di kampung.',
-          },
-        ];
+        _history = data;
         _isLoadingHistory = false;
       });
     } catch (e) {
+      debugPrint('Error loading leave history: $e');
       if (!mounted) return;
       setState(() => _isLoadingHistory = false);
     }
@@ -80,7 +69,10 @@ class _PengajuanScreenState extends State<PengajuanScreen>
 
   Future<void> _pickFile() async {
     try {
-      final result = await FilePicker.platform.pickFiles();
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+      );
       if (result != null) {
         setState(() => _attachment = result.files.first);
       }
@@ -95,24 +87,121 @@ class _PengajuanScreenState extends State<PengajuanScreen>
     setState(() => _isSubmitting = true);
 
     try {
-      // Mock submission for now
-      await Future.delayed(const Duration(seconds: 2));
+      final typeMap = {
+        'Cuti': 'cuti',
+        'Sakit': 'sakit',
+        'Dinas Luar': 'dinas_luar',
+        'Dinas Dalam': 'dinas_dalam',
+      };
+      final apiType = typeMap[_selectedType] ?? 'cuti';
+      final startDateStr = DateFormat('yyyy-MM-dd').format(_startDate);
+      final endDateStr = DateFormat('yyyy-MM-dd').format(_endDate);
+
+      await _api.submitLeaveRequest(
+        type: apiType,
+        tanggalMulai: startDateStr,
+        tanggalSelesai: endDateStr,
+        alasan: _reasonController.text,
+        lampiranPath: _attachment?.path,
+      );
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Pengajuan berhasil dikirim'),
+          content: Text('✅ Pengajuan izin/cuti berhasil dikirim!'),
           backgroundColor: AppTheme.success,
         ),
       );
-      _tabController.animateTo(1); // Go to history
+      _reasonController.clear();
+      setState(() {
+        _attachment = null;
+      });
+      _tabController.animateTo(1); // Auto switch to Riwayat Tab
       _loadHistory();
     } catch (e) {
+      if (!mounted) return;
+      final errStr = e.toString();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: AppTheme.danger),
+        SnackBar(
+          content: Text('❌ Gagal mengirim pengajuan: $errStr'),
+          backgroundColor: AppTheme.danger,
+        ),
       );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  String _formatIndoDate(String? rawDate) {
+    if (rawDate == null || rawDate.isEmpty) return '-';
+    try {
+      final dt = DateTime.parse(rawDate);
+      final monthsIndo = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'Mei',
+        'Jun',
+        'Jul',
+        'Agu',
+        'Sep',
+        'Okt',
+        'Nov',
+        'Des'
+      ];
+      final day = dt.day.toString().padLeft(2, '0');
+      final month = monthsIndo[dt.month - 1];
+      final year = dt.year;
+      return '$day $month $year';
+    } catch (_) {
+      return rawDate;
+    }
+  }
+
+  String _getTypeLabel(String? rawType) {
+    if (rawType == null) return 'Pengajuan';
+    switch (rawType.toLowerCase()) {
+      case 'cuti':
+        return 'Cuti Tahunan';
+      case 'sakit':
+        return 'Izin Sakit';
+      case 'dinas_luar':
+      case 'dinas luar':
+        return 'Tugas Dinas Luar (DL)';
+      case 'dinas_dalam':
+      case 'dinas dalam':
+        return 'Tugas Dinas Dalam (DD)';
+      default:
+        return rawType;
+    }
+  }
+
+  String _getStatusLabel(String? rawStatus) {
+    if (rawStatus == null) return 'Menunggu';
+    switch (rawStatus.toLowerCase()) {
+      case 'disetujui':
+      case 'approved':
+        return 'Disetujui';
+      case 'ditolak':
+      case 'rejected':
+        return 'Ditolak';
+      default:
+        return 'Menunggu Approval';
+    }
+  }
+
+  Color _getStatusColor(String? rawStatus) {
+    if (rawStatus == null) return AppTheme.warning;
+    switch (rawStatus.toLowerCase()) {
+      case 'disetujui':
+      case 'approved':
+        return AppTheme.success;
+      case 'ditolak':
+      case 'rejected':
+        return AppTheme.danger;
+      default:
+        return AppTheme.warning;
     }
   }
 
@@ -121,7 +210,10 @@ class _PengajuanScreenState extends State<PengajuanScreen>
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Pengajuan Layanan'),
+        title: const Text(
+          'Layanan Izin & Cuti',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: AppTheme.teal500,
@@ -129,7 +221,7 @@ class _PengajuanScreenState extends State<PengajuanScreen>
           unselectedLabelColor: Colors.grey,
           tabs: const [
             Tab(text: 'Form Pengajuan'),
-            Tab(text: 'Riwayat'),
+            Tab(text: 'Riwayat Saya'),
           ],
         ),
       ),
@@ -150,9 +242,10 @@ class _PengajuanScreenState extends State<PengajuanScreen>
           children: [
             _buildLabel('Jenis Pengajuan'),
             DropdownButtonFormField<String>(
-              initialValue: _selectedType,
+              value: _selectedType,
               style: TextStyle(
                 color: Theme.of(context).textTheme.bodyLarge?.color,
+                fontWeight: FontWeight.bold,
               ),
               dropdownColor: Theme.of(context).cardColor,
               decoration: InputDecoration(
@@ -174,7 +267,9 @@ class _PengajuanScreenState extends State<PengajuanScreen>
               items: _types
                   .map((t) => DropdownMenuItem(value: t, child: Text(t)))
                   .toList(),
-              onChanged: (v) => setState(() => _selectedType = v),
+              onChanged: (v) {
+                if (v != null) setState(() => _selectedType = v);
+              },
             ),
             const SizedBox(height: 20),
 
@@ -232,11 +327,11 @@ class _PengajuanScreenState extends State<PengajuanScreen>
                 ),
               ),
               validator: (v) =>
-                  v == null || v.isEmpty ? 'Alasan harus diisi' : null,
+                  v == null || v.trim().isEmpty ? 'Alasan harus diisi' : null,
             ),
             const SizedBox(height: 20),
 
-            _buildLabel('Lampiran (Opsional)'),
+            _buildLabel('Dokumen Lampiran (Opsional)'),
             GestureDetector(
               onTap: _pickFile,
               child: Container(
@@ -244,7 +339,7 @@ class _PengajuanScreenState extends State<PengajuanScreen>
                 decoration: BoxDecoration(
                   color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white10),
+                  border: Border.all(color: Theme.of(context).dividerColor),
                 ),
                 child: Row(
                   children: [
@@ -252,11 +347,13 @@ class _PengajuanScreenState extends State<PengajuanScreen>
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        _attachment?.name ?? 'Pilih File (PDF/Image)',
+                        _attachment?.name ??
+                            'Pilih Berkas Lampiran (PDF/Gambar)',
                         style: TextStyle(
                           color: _attachment != null
                               ? Theme.of(context).textTheme.bodyLarge?.color
                               : Colors.grey,
+                          fontSize: 13,
                         ),
                       ),
                     ),
@@ -274,15 +371,35 @@ class _PengajuanScreenState extends State<PengajuanScreen>
               ),
             ),
 
-            const SizedBox(height: 40),
+            const SizedBox(height: 32),
             SizedBox(
               width: double.infinity,
               height: 55,
               child: ElevatedButton(
                 onPressed: _isSubmitting ? null : _submit,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.teal500,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
                 child: _isSubmitting
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('KIRIM PENGAJUAN'),
+                    ? const SizedBox(
+                        height: 24,
+                        width: 24,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text(
+                        'KIRIM PENGAJUAN',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1,
+                        ),
+                      ),
               ),
             ),
           ],
@@ -293,39 +410,63 @@ class _PengajuanScreenState extends State<PengajuanScreen>
 
   Widget _buildHistoryTab() {
     if (_isLoadingHistory) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(
+        child: CircularProgressIndicator(color: AppTheme.teal500),
+      );
     }
 
     if (_history.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.history_rounded, size: 64, color: Colors.grey[800]),
-            const SizedBox(height: 16),
-            const Text(
-              'Belum ada riwayat pengajuan',
-              style: TextStyle(color: Colors.grey),
+      return RefreshIndicator(
+        onRefresh: _loadHistory,
+        color: AppTheme.teal500,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Container(
+            height: MediaQuery.of(context).size.height * 0.6,
+            alignment: Alignment.center,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.history_rounded, size: 64, color: Colors.grey[700]),
+                const SizedBox(height: 16),
+                const Text(
+                  'Belum ada riwayat pengajuan izin/cuti',
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(20),
-      itemCount: _history.length,
-      itemBuilder: (context, index) {
-        final item = _history[index];
-        return _buildHistoryItem(item);
-      },
+    return RefreshIndicator(
+      onRefresh: _loadHistory,
+      color: AppTheme.teal500,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: _history.length,
+        itemBuilder: (context, index) {
+          final item = _history[index];
+          return _buildHistoryItem(item);
+        },
+      ),
     );
   }
 
   Widget _buildHistoryItem(dynamic item) {
-    Color statusColor = item['status'] == 'Disetujui'
-        ? AppTheme.success
-        : AppTheme.warning;
+    final typeStr = _getTypeLabel(item['type']?.toString());
+    final statusStr = _getStatusLabel(item['status']?.toString());
+    final statusColor = _getStatusColor(item['status']?.toString());
+
+    final startDateStr =
+        _formatIndoDate(item['tanggal_mulai'] ?? item['start']);
+    final endDateStr = _formatIndoDate(item['tanggal_selesai'] ?? item['end']);
+    final reasonStr = item['alasan'] ?? item['reason'] ?? '-';
+    final noteStr = item['catatan_approval'];
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -333,7 +474,7 @@ class _PengajuanScreenState extends State<PengajuanScreen>
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -341,24 +482,27 @@ class _PengajuanScreenState extends State<PengajuanScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                item['type'],
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
+              Expanded(
+                child: Text(
+                  typeStr,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: statusColor.withAlpha(30),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
-                  item['status'],
+                  statusStr,
                   style: TextStyle(
                     color: statusColor,
-                    fontSize: 10,
+                    fontSize: 11,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -366,17 +510,58 @@ class _PengajuanScreenState extends State<PengajuanScreen>
             ],
           ),
           const SizedBox(height: 8),
-          Text(
-            '${DateFormat('dd MMM').format(DateTime.parse(item['start']))} - ${DateFormat('dd MMM yyyy').format(DateTime.parse(item['end']))}',
-            style: const TextStyle(color: Colors.grey, fontSize: 12),
+          Row(
+            children: [
+              const Icon(Icons.date_range, size: 14, color: AppTheme.teal500),
+              const SizedBox(width: 6),
+              Text(
+                '$startDateStr  s.d.  $endDateStr',
+                style: const TextStyle(
+                  color: Colors.grey,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Text(
-            item['reason'],
-            maxLines: 2,
+            reasonStr,
+            maxLines: 3,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 13, height: 1.4),
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.4,
+              color: Theme.of(context).textTheme.bodyMedium?.color,
+            ),
           ),
+          if (noteStr != null && noteStr.toString().trim().isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.amber.withAlpha(20),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.note_alt_outlined,
+                    size: 14,
+                    color: Colors.amber,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Catatan Atasan: $noteStr',
+                      style:
+                          const TextStyle(fontSize: 11, color: Colors.amber),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -388,7 +573,7 @@ class _PengajuanScreenState extends State<PengajuanScreen>
       child: Text(
         text,
         style: const TextStyle(
-          fontSize: 14,
+          fontSize: 13,
           fontWeight: FontWeight.bold,
           color: AppTheme.teal500,
         ),
@@ -412,12 +597,15 @@ class _PengajuanScreenState extends State<PengajuanScreen>
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white10),
+          border: Border.all(color: Theme.of(context).dividerColor),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(DateFormat('dd/MM/yyyy').format(date)),
+            Text(
+              _formatIndoDate(DateFormat('yyyy-MM-dd').format(date)),
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            ),
             const Icon(Icons.calendar_today, size: 16, color: AppTheme.teal500),
           ],
         ),
