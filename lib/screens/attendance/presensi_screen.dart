@@ -86,6 +86,8 @@ class _PresensiScreenState extends State<PresensiScreen> {
         return '$kembaliStr - $pulangStr';
       case AttendanceType.pulang:
         return '$pulangStr - 23:59';
+      case AttendanceType.dinasDalam:
+        return '05:00 - 23:59 (Dinas Dalam)';
       case AttendanceType.dinasLuar:
         return '05:00 - 23:59 (Dinas Luar)';
       case AttendanceType.wfh:
