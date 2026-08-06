@@ -29,12 +29,7 @@ class _PengajuanScreenState extends State<PengajuanScreen>
   List<dynamic> _history = [];
   bool _isLoadingHistory = true;
 
-  final List<String> _types = [
-    'Cuti',
-    'Sakit',
-    'Dinas Luar',
-    'Dinas Dalam',
-  ];
+  final List<String> _types = ['Cuti', 'Sakit', 'Dinas Luar', 'Dinas Dalam'];
 
   @override
   void initState() {
@@ -148,7 +143,7 @@ class _PengajuanScreenState extends State<PengajuanScreen>
         'Sep',
         'Okt',
         'Nov',
-        'Des'
+        'Des',
       ];
       final day = dt.day.toString().padLeft(2, '0');
       final month = monthsIndo[dt.month - 1];
@@ -242,7 +237,7 @@ class _PengajuanScreenState extends State<PengajuanScreen>
           children: [
             _buildLabel('Jenis Pengajuan'),
             DropdownButtonFormField<String>(
-              value: _selectedType,
+              initialValue: _selectedType,
               style: TextStyle(
                 color: Theme.of(context).textTheme.bodyLarge?.color,
                 fontWeight: FontWeight.bold,
@@ -462,8 +457,9 @@ class _PengajuanScreenState extends State<PengajuanScreen>
     final statusStr = _getStatusLabel(item['status']?.toString());
     final statusColor = _getStatusColor(item['status']?.toString());
 
-    final startDateStr =
-        _formatIndoDate(item['tanggal_mulai'] ?? item['start']);
+    final startDateStr = _formatIndoDate(
+      item['tanggal_mulai'] ?? item['start'],
+    );
     final endDateStr = _formatIndoDate(item['tanggal_selesai'] ?? item['end']);
     final reasonStr = item['alasan'] ?? item['reason'] ?? '-';
     final noteStr = item['catatan_approval'];
@@ -492,8 +488,10 @@ class _PengajuanScreenState extends State<PengajuanScreen>
                 ),
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: statusColor.withAlpha(30),
                   borderRadius: BorderRadius.circular(10),
@@ -554,8 +552,7 @@ class _PengajuanScreenState extends State<PengajuanScreen>
                   Expanded(
                     child: Text(
                       'Catatan Atasan: $noteStr',
-                      style:
-                          const TextStyle(fontSize: 11, color: Colors.amber),
+                      style: const TextStyle(fontSize: 11, color: Colors.amber),
                     ),
                   ),
                 ],
