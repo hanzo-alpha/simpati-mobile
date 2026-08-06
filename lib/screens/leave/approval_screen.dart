@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../config/theme.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/navigation_provider.dart';
 import '../../services/api_service.dart';
 
 class ApprovalScreen extends StatefulWidget {
@@ -179,6 +182,9 @@ class _ApprovalScreenState extends State<ApprovalScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    final isSupervisor = auth.isSupervisor;
+
     return Scaffold(
       backgroundColor: AppTheme.navy900,
       appBar: AppBar(
@@ -189,75 +195,133 @@ class _ApprovalScreenState extends State<ApprovalScreen> {
         backgroundColor: AppTheme.navy900,
         elevation: 0,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadRequests,
-          ),
+          if (isSupervisor)
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: _loadRequests,
+            ),
         ],
       ),
-      body: Column(
-        children: [
-          // Filter Bar
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
+      body: !isSupervisor
+          ? Container(
+              padding: const EdgeInsets.all(24),
+              alignment: Alignment.center,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _buildFilterChip('Semua', 'all'),
-                  const SizedBox(width: 8),
-                  _buildFilterChip('Menunggu', 'menunggu'),
-                  const SizedBox(width: 8),
-                  _buildFilterChip('Disetujui', 'disetujui'),
-                  const SizedBox(width: 8),
-                  _buildFilterChip('Ditolak', 'ditolak'),
-                ],
-              ),
-            ),
-          ),
-
-          // List Body
-          Expanded(
-            child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(color: AppTheme.teal500),
-                  )
-                : _requests.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.assignment_turned_in_outlined,
-                          size: 64,
-                          color: Colors.grey[600],
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Tidak ada pengajuan bawahan untuk ditinjau',
-                          style: TextStyle(
-                            color: Colors.grey[400],
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : RefreshIndicator(
-                    onRefresh: _loadRequests,
+                  const Icon(
+                    Icons.shield_outlined,
+                    size: 64,
                     color: AppTheme.teal500,
-                    child: ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _requests.length,
-                      itemBuilder: (context, index) {
-                        final req = _requests[index];
-                        return _buildCard(req);
-                      },
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Akses Khusus Atasan / Evaluator',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
                     ),
                   ),
-          ),
-        ],
-      ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Halaman ini khusus untuk Atasan atau Pejabat Penilai untuk meninjau pengajuan bawahan.\n\nUntuk membuat pengajuan atau melihat riwayat izin/cuti Anda sendiri, silakan gunakan menu Layanan Izin & Cuti.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.grey[400],
+                      fontSize: 13,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      context.read<NavigationProvider>().setIndex(3);
+                    },
+                    icon: const Icon(Icons.description_rounded),
+                    label: const Text('Buka Layanan Saya'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.teal500,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : Column(
+              children: [
+                // Filter Bar
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _buildFilterChip('Semua', 'all'),
+                        const SizedBox(width: 8),
+                        _buildFilterChip('Menunggu', 'menunggu'),
+                        const SizedBox(width: 8),
+                        _buildFilterChip('Disetujui', 'disetujui'),
+                        const SizedBox(width: 8),
+                        _buildFilterChip('Ditolak', 'ditolak'),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // List Body
+                Expanded(
+                  child: _isLoading
+                      ? const Center(
+                          child: CircularProgressIndicator(
+                            color: AppTheme.teal500,
+                          ),
+                        )
+                      : _requests.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.assignment_turned_in_outlined,
+                                size: 64,
+                                color: Colors.grey[600],
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                'Tidak ada pengajuan bawahan untuk ditinjau',
+                                style: TextStyle(
+                                  color: Colors.grey[400],
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : RefreshIndicator(
+                          onRefresh: _loadRequests,
+                          color: AppTheme.teal500,
+                          child: ListView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: _requests.length,
+                            itemBuilder: (context, index) {
+                              final req = _requests[index];
+                              return _buildCard(req);
+                            },
+                          ),
+                        ),
+                ),
+              ],
+            ),
     );
   }
 
@@ -356,7 +420,11 @@ class _ApprovalScreenState extends State<ApprovalScreen> {
           const Divider(color: Colors.white12, height: 20),
           Row(
             children: [
-              const Icon(Icons.category_outlined, size: 14, color: AppTheme.teal500),
+              const Icon(
+                Icons.category_outlined,
+                size: 14,
+                color: AppTheme.teal500,
+              ),
               const SizedBox(width: 6),
               Text(
                 _getTypeLabel(req['type']),

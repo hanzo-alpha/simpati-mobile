@@ -6,6 +6,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../config/theme.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/navigation_provider.dart';
 import '../../services/api_service.dart';
 import '../../config/enums.dart';
 
@@ -755,6 +756,9 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   Widget _buildQuickActions(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    final isSupervisor = auth.isSupervisor;
+
     return Column(
       children: [
         Row(
@@ -783,14 +787,26 @@ class _DashboardScreenState extends State<DashboardScreen>
           ],
         ),
         const SizedBox(height: 12),
-        _buildActionCard(
-          context,
-          'Persetujuan Izin & Cuti',
-          'Review & Approval Subordinat',
-          Icons.approval_rounded,
-          AppTheme.teal500,
-          () => Navigator.pushNamed(context, '/approval'),
-        ),
+        if (isSupervisor)
+          _buildActionCard(
+            context,
+            'Persetujuan Izin & Cuti',
+            'Review & Approval Subordinat',
+            Icons.approval_rounded,
+            AppTheme.teal500,
+            () => Navigator.pushNamed(context, '/approval'),
+          )
+        else
+          _buildActionCard(
+            context,
+            'Layanan Izin & Cuti',
+            'Pengajuan & Riwayat Saya',
+            Icons.description_rounded,
+            AppTheme.teal500,
+            () {
+              context.read<NavigationProvider>().setIndex(3);
+            },
+          ),
       ],
     );
   }

@@ -21,6 +21,21 @@ class AuthProvider extends ChangeNotifier {
   String get userJabatan => _user?['profile']?['jabatan'] ?? '-';
   int get sisaCuti => _user?['profile']?['sisa_cuti_tahunan'] ?? 0;
 
+  bool get isSupervisor {
+    if (_user == null) return false;
+    final roleName = _user?['role']?['name']?.toString().toLowerCase() ?? '';
+    final roleId = _user?['role_id'];
+    final isSup = _user?['is_supervisor'] == true ||
+        (_user?['subordinates_count'] != null &&
+            (_user!['subordinates_count'] as int) > 0);
+    return isSup ||
+        roleId == 2 ||
+        roleId == 3 ||
+        roleName == 'super_admin' ||
+        roleName == 'admin_opd' ||
+        roleName == 'atasan';
+  }
+
   Future<bool> checkAuth() async {
     if (await _api.isLoggedIn()) {
       try {
