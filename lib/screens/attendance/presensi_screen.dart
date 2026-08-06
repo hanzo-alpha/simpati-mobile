@@ -265,51 +265,140 @@ class _PresensiScreenState extends State<PresensiScreen> {
     return _distance! <= double.parse(_office!['radius_meters'].toString());
   }
 
-  Future<void> _takeSelfie() async {
-    if (!_allowRearCamera && !_allowGalleryUpload) {
-      // Direct front camera (selfie live) only
-      _pickImage(ImageSource.camera, CameraDevice.front);
-      return;
-    }
+  Future<void> _showLivenessChallengeDialog(VoidCallback onProceed) async {
+    final challenges = [
+      '😊 Senyum ke kamera & kedipkan mata',
+      '👤 Posisikan wajah tepat di tengah kamera',
+      '💡 Pastikan pencahayaan sekitar cukup terang',
+    ];
+    final selectedChallenge = (List<String>.from(challenges)..shuffle()).first;
 
-    showModalBottomSheet(
+    await showDialog(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Wrap(
-          children: [
-            ListTile(
-              leading: const Icon(Icons.camera_front),
-              title: const Text('Kamera Depan (Selfie)'),
-              onTap: () {
-                Navigator.pop(ctx);
-                _pickImage(ImageSource.camera, CameraDevice.front);
-              },
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: const Color(0xFF1E293B),
+        title: Row(
+          children: const [
+            Icon(Icons.face_retouching_natural, color: AppTheme.teal500),
+            SizedBox(width: 8),
+            Text(
+              'Verifikasi Wajah Live',
+              style: TextStyle(color: Colors.white, fontSize: 16),
             ),
-            if (_allowRearCamera)
-              ListTile(
-                leading: const Icon(Icons.camera_alt),
-                title: const Text('Kamera Utama (Belakang)'),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _pickImage(ImageSource.camera, CameraDevice.rear);
-                },
-              ),
-            if (_allowGalleryUpload)
-              ListTile(
-                leading: const Icon(Icons.photo_library),
-                title: const Text('Pilih dari Galeri'),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _pickImage(ImageSource.gallery, CameraDevice.front);
-                },
-              ),
           ],
         ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Untuk keamanan presensi anti-spoofing:',
+              style: TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.teal500.withAlpha(20),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.teal500.withAlpha(60)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.verified_user,
+                    color: AppTheme.teal500,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      selectedChallenge,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(ctx);
+              onProceed();
+            },
+            icon: const Icon(Icons.camera_alt, size: 18),
+            label: const Text('Buka Kamera'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.teal500,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+        ],
       ),
     );
+  }
+
+  Future<void> _takeSelfie() async {
+    await _showLivenessChallengeDialog(() {
+      if (!_allowRearCamera && !_allowGalleryUpload) {
+        // Direct front camera (selfie live) only
+        _pickImage(ImageSource.camera, CameraDevice.front);
+        return;
+      }
+
+      showModalBottomSheet(
+        context: context,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        builder: (ctx) => SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_front),
+                title: const Text('Kamera Depan (Selfie)'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickImage(ImageSource.camera, CameraDevice.front);
+                },
+              ),
+              if (_allowRearCamera)
+                ListTile(
+                  leading: const Icon(Icons.camera_alt),
+                  title: const Text('Kamera Utama (Belakang)'),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickImage(ImageSource.camera, CameraDevice.rear);
+                  },
+                ),
+              if (_allowGalleryUpload)
+                ListTile(
+                  leading: const Icon(Icons.photo_library),
+                  title: const Text('Pilih dari Galeri'),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _pickImage(ImageSource.gallery, CameraDevice.front);
+                  },
+                ),
+            ],
+          ),
+        ),
+      );
+    });
   }
 
   Future<void> _pickImage(

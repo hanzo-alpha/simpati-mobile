@@ -28,6 +28,7 @@ class _PengajuanScreenState extends State<PengajuanScreen>
   // History state
   List<dynamic> _history = [];
   bool _isLoadingHistory = true;
+  int _sisaCuti = 12;
 
   final List<String> _types = ['Cuti', 'Sakit', 'Dinas Luar', 'Dinas Dalam'];
 
@@ -36,6 +37,24 @@ class _PengajuanScreenState extends State<PengajuanScreen>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _loadHistory();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    try {
+      final res = await _api.getProfile();
+      final user = res.data['user'] ?? res.data;
+      if (user != null && user['profile'] != null) {
+        final cutiVal = user['profile']['sisa_cuti_tahunan'];
+        if (cutiVal != null && mounted) {
+          setState(() {
+            _sisaCuti = int.tryParse(cutiVal.toString()) ?? 12;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading profile leave quota: $e');
+    }
   }
 
   @override
@@ -227,6 +246,94 @@ class _PengajuanScreenState extends State<PengajuanScreen>
     );
   }
 
+  Widget _buildLeaveQuotaCard() {
+    final daysSelected = _endDate.difference(_startDate).inDays + 1;
+    final isExceeding = _selectedType == 'Cuti' && daysSelected > _sisaCuti;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            isExceeding
+                ? Colors.red.withAlpha(40)
+                : AppTheme.teal500.withAlpha(40),
+            isExceeding
+                ? Colors.red.withAlpha(15)
+                : AppTheme.teal500.withAlpha(15),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isExceeding
+              ? Colors.red.withAlpha(80)
+              : AppTheme.teal500.withAlpha(80),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: isExceeding
+                  ? Colors.red.withAlpha(40)
+                  : AppTheme.teal500.withAlpha(40),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              isExceeding ? Icons.warning_rounded : Icons.event_available_rounded,
+              color: isExceeding ? Colors.red : AppTheme.teal500,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Sisa Kuota Cuti Tahunan',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      'Durasi: $daysSelected Hari',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isExceeding ? Colors.red : Colors.grey,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  isExceeding
+                      ? '$_sisaCuti Hari (Durasi Pengajuan Melebihi Kuota!)'
+                      : '$_sisaCuti Hari Tersedia',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.extrabold,
+                    color: isExceeding ? Colors.red : AppTheme.teal500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildFormTab() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -235,6 +342,7 @@ class _PengajuanScreenState extends State<PengajuanScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            _buildLeaveQuotaCard(),
             _buildLabel('Jenis Pengajuan'),
             DropdownButtonFormField<String>(
               initialValue: _selectedType,
