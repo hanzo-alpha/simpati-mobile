@@ -47,6 +47,7 @@ dependencies:
   flutter_map: ^8.2.2
   latlong2: ^0.9.1
   file_picker: ^10.3.10
+  local_auth: ^2.3.0
 
 dev_dependencies:
   flutter_test:

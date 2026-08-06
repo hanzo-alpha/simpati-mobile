@@ -641,6 +641,32 @@ class _PengajuanScreenState extends State<PengajuanScreen>
               color: Theme.of(context).textTheme.bodyMedium?.color,
             ),
           ),
+          if (item['lampiran_url'] != null && item['lampiran_url'].toString().isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppTheme.teal500.withAlpha(20),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppTheme.teal500.withAlpha(40)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.attach_file, size: 14, color: AppTheme.teal500),
+                  const SizedBox(width: 6),
+                  const Text(
+                    'Lampiran Berkas Terunggah',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.teal500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           if (noteStr != null && noteStr.toString().trim().isNotEmpty) ...[
             const SizedBox(height: 10),
             Container(

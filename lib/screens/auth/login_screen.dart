@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../config/theme.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/biometric_service.dart';
 import 'package:provider/provider.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -242,11 +243,54 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () async {
+                              final bioService = BiometricService();
+                              final bool authenticated = await bioService.authenticate(
+                                localizedReason: 'Verifikasi Sidik Jari / Face ID untuk Masuk SIMPATI',
+                              );
+                              if (authenticated && mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('✅ Autentikasi Biometrik Berhasil!'),
+                                    backgroundColor: AppTheme.success,
+                                  ),
+                                );
+                                Navigator.pushReplacementNamed(context, '/home');
+                              }
+                            },
+                            icon: const Icon(Icons.fingerprint_rounded, color: AppTheme.teal500, size: 24),
+                            label: const Text(
+                              'Biometrik',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              side: BorderSide(color: AppTheme.teal500.withAlpha(80)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 16),
                     TextButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        // Demo Help
+                      },
                       child: Text(
-                        'Lupa Password?',
+                        'Lupa NIP / Password?',
                         style: TextStyle(
                           color: AppTheme.teal500.withAlpha(200),
                           fontWeight: FontWeight.w600,
