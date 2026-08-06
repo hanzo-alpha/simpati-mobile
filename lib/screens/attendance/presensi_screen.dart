@@ -101,13 +101,33 @@ class _PresensiScreenState extends State<PresensiScreen> {
   Map<String, dynamic>? _office;
   Map<String, dynamic>? _scheduleData; // Active schedule for today
   double? _distance;
+  bool _allowRearCamera = false;
+  bool _allowGalleryUpload = false;
 
   @override
   void initState() {
     super.initState();
+    _retrieveLostData();
     _getLocation();
     _loadTodayStatus();
     _loadSchedule();
+  }
+
+  Future<void> _retrieveLostData() async {
+    try {
+      final picker = ImagePicker();
+      final response = await picker.retrieveLostData();
+      if (response.isEmpty) return;
+      if (response.file != null) {
+        setState(() {
+          _selfieImage = response.file;
+        });
+      } else if (response.exception != null) {
+        debugPrint('Error retrieving lost camera data: ${response.exception}');
+      }
+    } catch (e) {
+      debugPrint('retrieveLostData error: $e');
+    }
   }
 
   Future<void> _loadSchedule() async {
@@ -152,9 +172,14 @@ class _PresensiScreenState extends State<PresensiScreen> {
   Future<void> _loadTodayStatus() async {
     try {
       final response = await _api.getTodayAttendance();
+      final camSettings = response.data['camera_settings'];
       setState(() {
         _todayAttendances = response.data['attendances'] ?? [];
         _office = response.data['office'];
+        if (camSettings != null) {
+          _allowRearCamera = camSettings['allow_rear_camera'] == true;
+          _allowGalleryUpload = camSettings['allow_gallery_upload'] == true;
+        }
       });
       if (_position != null) _calculateDistance();
     } catch (_) {}
@@ -239,15 +264,78 @@ class _PresensiScreenState extends State<PresensiScreen> {
   }
 
   Future<void> _takeSelfie() async {
-    final picker = ImagePicker();
-    final image = await picker.pickImage(
-      source: ImageSource.camera,
-      preferredCameraDevice: CameraDevice.front,
-      maxWidth: 800,
-      imageQuality: 85,
+    if (!_allowRearCamera && !_allowGalleryUpload) {
+      // Direct front camera (selfie live) only
+      _pickImage(ImageSource.camera, CameraDevice.front);
+      return;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_front),
+              title: const Text('Kamera Depan (Selfie)'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickImage(ImageSource.camera, CameraDevice.front);
+              },
+            ),
+            if (_allowRearCamera)
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Kamera Utama (Belakang)'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickImage(ImageSource.camera, CameraDevice.rear);
+                },
+              ),
+            if (_allowGalleryUpload)
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Pilih dari Galeri'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickImage(ImageSource.gallery, CameraDevice.front);
+                },
+              ),
+          ],
+        ),
+      ),
     );
-    if (image != null) {
-      setState(() => _selfieImage = image);
+  }
+
+  Future<void> _pickImage(
+    ImageSource source,
+    CameraDevice preferredCamera,
+  ) async {
+    try {
+      final picker = ImagePicker();
+      final image = await picker.pickImage(
+        source: source,
+        preferredCameraDevice: preferredCamera,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 80,
+      );
+      if (image != null && mounted) {
+        setState(() => _selfieImage = image);
+      }
+    } catch (e) {
+      debugPrint('Error taking selfie: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal mengambil foto selfie: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
