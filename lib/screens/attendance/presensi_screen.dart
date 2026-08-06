@@ -360,6 +360,7 @@ class _PresensiScreenState extends State<PresensiScreen> {
         longitude: _position!.longitude,
         fotoPath: _selfieImage!.path,
         isMocked: _position!.isMocked,
+        isLivePhoto: true,
       );
       if (mounted) {
         _showSuccess('Presensi berhasil dikirim!');
@@ -564,7 +565,48 @@ class _PresensiScreenState extends State<PresensiScreen> {
                                 ),
                               ],
                             )
-                          : const SizedBox(),
+                          : Stack(
+                              children: [
+                                Positioned(
+                                  bottom: 8,
+                                  left: 8,
+                                  right: 8,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withAlpha(180),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: AppTheme.teal500.withAlpha(120),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: const [
+                                        Icon(
+                                          Icons.verified_user_rounded,
+                                          color: AppTheme.teal500,
+                                          size: 12,
+                                        ),
+                                        SizedBox(width: 4),
+                                        Text(
+                                          'Kamera Live',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                     ),
                   ),
                 ),

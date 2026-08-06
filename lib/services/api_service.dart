@@ -124,6 +124,7 @@ class ApiService {
     required double longitude,
     required String fotoPath,
     bool isMocked = false,
+    bool isLivePhoto = true,
   }) async {
     final deviceId = await getDeviceId();
     final formData = FormData.fromMap({
@@ -131,6 +132,7 @@ class ApiService {
       'latitude': latitude,
       'longitude': longitude,
       'is_mocked': isMocked ? 1 : 0,
+      'is_live_photo': isLivePhoto ? 1 : 0,
       'device_id': deviceId,
       'foto_selfie': await MultipartFile.fromFile(
         fotoPath,
