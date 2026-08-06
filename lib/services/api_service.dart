@@ -19,7 +19,6 @@ class ApiService {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'Host': 'simpati.test', // Required for Herd virtual hosts via IP
         },
       ),
     );

@@ -3,6 +3,7 @@ enum AttendanceType {
   istirahat,
   kembali,
   pulang,
+  dinasDalam,
   dinasLuar,
   wfh;
 
@@ -16,8 +17,10 @@ enum AttendanceType {
         return 'Kembali';
       case AttendanceType.pulang:
         return 'Pulang';
+      case AttendanceType.dinasDalam:
+        return 'Dinas Dalam (DD)';
       case AttendanceType.dinasLuar:
-        return 'Dinas Luar';
+        return 'Dinas Luar (DL)';
       case AttendanceType.wfh:
         return 'WFH';
     }
@@ -33,6 +36,8 @@ enum AttendanceType {
         return '🔵';
       case AttendanceType.pulang:
         return '🟣';
+      case AttendanceType.dinasDalam:
+        return '🏢';
       case AttendanceType.dinasLuar:
         return '✈️';
       case AttendanceType.wfh:
@@ -45,18 +50,51 @@ enum AttendanceStatus {
   tepatWaktu,
   terlambat,
   pulangCepat,
-  alpha;
+  alpha,
+  dinasDalam,
+  dinasLuar,
+  sakit,
+  cuti;
+
+  String get code {
+    switch (this) {
+      case AttendanceStatus.tepatWaktu:
+        return 'Hadir';
+      case AttendanceStatus.terlambat:
+        return 'TL';
+      case AttendanceStatus.pulangCepat:
+        return 'PSW';
+      case AttendanceStatus.alpha:
+        return 'TK';
+      case AttendanceStatus.dinasDalam:
+        return 'DD';
+      case AttendanceStatus.dinasLuar:
+        return 'DL';
+      case AttendanceStatus.sakit:
+        return 'Sakit';
+      case AttendanceStatus.cuti:
+        return 'Cuti';
+    }
+  }
 
   String get label {
     switch (this) {
       case AttendanceStatus.tepatWaktu:
         return 'Tepat Waktu';
       case AttendanceStatus.terlambat:
-        return 'Terlambat';
+        return 'Terlambat (TL)';
       case AttendanceStatus.pulangCepat:
-        return 'Pulang Cepat';
+        return 'Pulang Sebelum Waktu (PSW)';
       case AttendanceStatus.alpha:
-        return 'Alpha';
+        return 'Tanpa Keterangan (TK)';
+      case AttendanceStatus.dinasDalam:
+        return 'Dinas Dalam (DD)';
+      case AttendanceStatus.dinasLuar:
+        return 'Dinas Luar (DL)';
+      case AttendanceStatus.sakit:
+        return 'Izin Sakit';
+      case AttendanceStatus.cuti:
+        return 'Cuti';
     }
   }
 }
@@ -73,13 +111,13 @@ enum LeaveType {
       case LeaveType.cuti:
         return 'Cuti';
       case LeaveType.sakit:
-        return 'Sakit';
+        return 'Izin Sakit';
       case LeaveType.dinasDalam:
-        return 'Dinas Dalam';
+        return 'Tugas Dinas Dalam (DD)';
       case LeaveType.dinasLuar:
-        return 'Dinas Luar';
+        return 'Tugas Dinas Luar (DL)';
       case LeaveType.izinLain:
-        return 'Izin Lain';
+        return 'Izin Lainnya';
     }
   }
 }

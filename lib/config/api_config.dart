@@ -1,6 +1,6 @@
 class ApiConfig {
-  // Using localhost with adb reverse for Laravel Herd (Port 8080 -> 443)
-  static const String baseUrl = 'https://localhost:8080/api';
+  // Local Wi-Fi IP of development server (192.168.1.4:8000)
+  static const String baseUrl = 'http://192.168.1.4:8000/api';
 
   // Timeout settings
   static const int connectTimeout = 30;
