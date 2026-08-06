@@ -67,7 +67,7 @@
 
 ## 📄 Repositori Web Backend
 
-Aplikasi mobile ini terhubung dengan backend REST API Laravel 12:
+Aplikasi mobile ini terhubung dengan backend REST API Laravel 13:
 👉 **[hanzo-alpha/simpati](https://github.com/hanzo-alpha/simpati)**
 
 ---
