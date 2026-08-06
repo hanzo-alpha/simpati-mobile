@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../config/theme.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/api_service.dart';
 import '../../services/biometric_service.dart';
 import 'package:provider/provider.dart';
 
@@ -254,13 +255,27 @@ class _LoginScreenState extends State<LoginScreen> {
                                 localizedReason: 'Verifikasi Sidik Jari / Face ID untuk Masuk SIMPATI',
                               );
                               if (authenticated && mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('✅ Autentikasi Biometrik Berhasil!'),
-                                    backgroundColor: AppTheme.success,
-                                  ),
-                                );
-                                Navigator.pushReplacementNamed(context, '/home');
+                                bool authOk = await auth.checkAuth();
+                                if (!authOk && _nipController.text.isNotEmpty && _passwordController.text.isNotEmpty) {
+                                  authOk = await auth.login(_nipController.text.trim(), _passwordController.text.trim());
+                                }
+
+                                if (authOk && mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('✅ Autentikasi Biometrik Berhasil!'),
+                                      backgroundColor: AppTheme.success,
+                                    ),
+                                  );
+                                  Navigator.pushReplacementNamed(context, '/home');
+                                } else if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('⚠️ Silakan ketik NIP & Password Anda untuk login pertama kali.'),
+                                      backgroundColor: AppTheme.warning,
+                                    ),
+                                  );
+                                }
                               }
                             },
                             icon: const Icon(Icons.fingerprint_rounded, color: AppTheme.teal500, size: 24),
@@ -285,17 +300,38 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
 
                     const SizedBox(height: 16),
-                    TextButton(
-                      onPressed: () {
-                        // Demo Help
-                      },
-                      child: Text(
-                        'Lupa NIP / Password?',
-                        style: TextStyle(
-                          color: AppTheme.teal500.withAlpha(200),
-                          fontWeight: FontWeight.w600,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            // Demo Help
+                          },
+                          child: Text(
+                            'Lupa Password?',
+                            style: TextStyle(
+                              color: AppTheme.teal500.withAlpha(200),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                            ),
+                          ),
                         ),
-                      ),
+                        Text(
+                          '•',
+                          style: TextStyle(color: Colors.grey[600]),
+                        ),
+                        TextButton(
+                          onPressed: () => _showDeviceResetDialog(context),
+                          child: const Text(
+                            'Reset Perangkat HP',
+                            style: TextStyle(
+                              color: Colors.amber,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
 
                     const SizedBox(height: 40),
@@ -313,6 +349,125 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showDeviceResetDialog(BuildContext context) {
+    final resetNipCtrl = TextEditingController(text: _nipController.text);
+    final resetPassCtrl = TextEditingController(text: _passwordController.text);
+    final resetReasonCtrl = TextEditingController();
+    bool isSubmitting = false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Row(
+            children: [
+              Icon(Icons.phonelink_erase_rounded, color: Colors.amber),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Reset Binding HP',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Layanan mandiri reset kunci perangkat HP jika Anda berganti ponsel baru.',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: resetNipCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'NIP ASN',
+                  prefixIcon: Icon(Icons.person, size: 18),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: resetPassCtrl,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Password Akun',
+                  prefixIcon: Icon(Icons.lock, size: 18),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: resetReasonCtrl,
+                maxLines: 2,
+                decoration: const InputDecoration(
+                  labelText: 'Alasan Ganti Perangkat HP',
+                  hintText: 'Contoh: Beli HP Baru / HP Lama Rusak',
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              onPressed: isSubmitting
+                  ? null
+                  : () async {
+                      if (resetNipCtrl.text.trim().isEmpty ||
+                          resetPassCtrl.text.trim().isEmpty ||
+                          resetReasonCtrl.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('⚠️ Mohon lengkapi NIP, password, dan alasan.'),
+                            backgroundColor: AppTheme.warning,
+                          ),
+                        );
+                        return;
+                      }
+
+                      setModalState(() => isSubmitting = true);
+                      try {
+                        final api = ApiService();
+                        final res = await api.requestDeviceReset(
+                          nip: resetNipCtrl.text.trim(),
+                          password: resetPassCtrl.text.trim(),
+                          alasan: resetReasonCtrl.text.trim(),
+                        );
+                        if (!mounted) return;
+                        Navigator.pop(ctx);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('✅ ${res.data['message']}'),
+                            backgroundColor: AppTheme.success,
+                          ),
+                        );
+                      } catch (e) {
+                        setModalState(() => isSubmitting = false);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('❌ Gagal reset perangkat: $e'),
+                            backgroundColor: AppTheme.danger,
+                          ),
+                        );
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.amber,
+                foregroundColor: Colors.black,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: Text(isSubmitting ? 'MEMPROSES...' : 'PROSES RESET'),
+            ),
+          ],
+        ),
       ),
     );
   }

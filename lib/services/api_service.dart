@@ -105,6 +105,17 @@ class ApiService {
     return response;
   }
 
+  Future<Response> requestDeviceReset({
+    required String nip,
+    required String password,
+    required String alasan,
+  }) async {
+    return await _dio.post(
+      '${ApiConfig.baseUrl}/request-device-reset',
+      data: {'nip': nip, 'password': password, 'alasan': alasan},
+    );
+  }
+
   Future<Response> getProfile() async {
     return await _dio.get(ApiConfig.me);
   }
@@ -218,16 +229,24 @@ class ApiService {
 
   // ─── Leave Requests ────────────────────────────
   Future<Response> getLeaveRequests({String? status}) async {
+    final Map<String, dynamic> params = {};
+    if (status != null && status.isNotEmpty) {
+      params['status'] = status;
+    }
     return await _dio.get(
       ApiConfig.leaveRequests,
-      queryParameters: {'status': status},
+      queryParameters: params,
     );
   }
 
   Future<Response> getSubordinateLeaveRequests({String? status}) async {
+    final Map<String, dynamic> params = {};
+    if (status != null && status.isNotEmpty) {
+      params['status'] = status;
+    }
     return await _dio.get(
       '${ApiConfig.leaveRequests}/subordinates',
-      queryParameters: {'status': status},
+      queryParameters: params,
     );
   }
 

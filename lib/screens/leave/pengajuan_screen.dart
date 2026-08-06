@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:file_picker/file_picker.dart';
@@ -69,7 +70,23 @@ class _PengajuanScreenState extends State<PengajuanScreen>
     try {
       final response = await _api.getLeaveRequests();
       if (!mounted) return;
-      final List data = response.data['data'] ?? response.data ?? [];
+
+      dynamic rawData = response.data;
+      if (rawData is String) {
+        try {
+          rawData = jsonDecode(rawData);
+        } catch (_) {}
+      }
+
+      List data = [];
+      if (rawData is Map && rawData['data'] != null) {
+        data = rawData['data'] is List ? List.from(rawData['data']) : [];
+      } else if (rawData is Map && rawData['leave_requests'] != null) {
+        data = rawData['leave_requests'] is List ? List.from(rawData['leave_requests']) : [];
+      } else if (rawData is List) {
+        data = List.from(rawData);
+      }
+
       setState(() {
         _history = data;
         _isLoadingHistory = false;
@@ -111,7 +128,7 @@ class _PengajuanScreenState extends State<PengajuanScreen>
       final startDateStr = DateFormat('yyyy-MM-dd').format(_startDate);
       final endDateStr = DateFormat('yyyy-MM-dd').format(_endDate);
 
-      await _api.submitLeaveRequest(
+      final response = await _api.submitLeaveRequest(
         type: apiType,
         tanggalMulai: startDateStr,
         tanggalSelesai: endDateStr,
@@ -120,9 +137,17 @@ class _PengajuanScreenState extends State<PengajuanScreen>
       );
 
       if (!mounted) return;
+
+      final newRequest = response.data['leave_request'];
+      if (newRequest != null) {
+        setState(() {
+          _history.insert(0, newRequest);
+        });
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('✅ Pengajuan izin/cuti berhasil dikirim!'),
+          content: Text('✅ Pengajuan izin/cuti berhasil dikirim & langsung masuk ke Riwayat!'),
           backgroundColor: AppTheme.success,
         ),
       );
@@ -322,7 +347,7 @@ class _PengajuanScreenState extends State<PengajuanScreen>
                       : '$_sisaCuti Hari Tersedia',
                   style: TextStyle(
                     fontSize: 14,
-                    fontWeight: FontWeight.extrabold,
+                    fontWeight: FontWeight.w800,
                     color: isExceeding ? Colors.red : AppTheme.teal500,
                   ),
                 ),
@@ -560,6 +585,112 @@ class _PengajuanScreenState extends State<PengajuanScreen>
     );
   }
 
+  void _showDocumentViewer(BuildContext context, String url) {
+    final bool isPdf = url.toLowerCase().contains('.pdf');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          constraints: const BoxConstraints(maxHeight: 500, maxWidth: 400),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        isPdf ? Icons.picture_as_pdf_rounded : Icons.image_rounded,
+                        color: AppTheme.teal500,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        isPdf ? 'Dokumen PDF' : 'Gambar Lampiran',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const Divider(),
+              const SizedBox(height: 8),
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: isPdf
+                      ? Container(
+                          alignment: Alignment.center,
+                          color: Colors.grey.withAlpha(30),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.picture_as_pdf, size: 56, color: Colors.redAccent),
+                              const SizedBox(height: 12),
+                              const Text(
+                                'Dokumen PDF Surat Izin/Cuti',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                url.split('/').last,
+                                style: const TextStyle(color: Colors.grey, fontSize: 11),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        )
+                      : Image.network(
+                          url,
+                          fit: BoxFit.contain,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return const Center(
+                              child: CircularProgressIndicator(color: AppTheme.teal500),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Center(
+                              child: Text('Gagal memuat gambar lampiran'),
+                            );
+                          },
+                        ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => Navigator.pop(ctx),
+                  icon: const Icon(Icons.check),
+                  label: const Text('TUTUP PREVIEW'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.teal500,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildHistoryItem(dynamic item) {
     final typeStr = _getTypeLabel(item['type']?.toString());
     final statusStr = _getStatusLabel(item['status']?.toString());
@@ -643,27 +774,33 @@ class _PengajuanScreenState extends State<PengajuanScreen>
           ),
           if (item['lampiran_url'] != null && item['lampiran_url'].toString().isNotEmpty) ...[
             const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: AppTheme.teal500.withAlpha(20),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppTheme.teal500.withAlpha(40)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.attach_file, size: 14, color: AppTheme.teal500),
-                  const SizedBox(width: 6),
-                  const Text(
-                    'Lampiran Berkas Terunggah',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.teal500,
+            InkWell(
+              onTap: () => _showDocumentViewer(context, item['lampiran_url'].toString()),
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppTheme.teal500.withAlpha(20),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppTheme.teal500.withAlpha(40)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.attach_file, size: 14, color: AppTheme.teal500),
+                    const SizedBox(width: 6),
+                    const Text(
+                      'Lihat Lampiran Berkas',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.teal500,
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 4),
+                    const Icon(Icons.visibility, size: 13, color: AppTheme.teal500),
+                  ],
+                ),
               ),
             ),
           ],

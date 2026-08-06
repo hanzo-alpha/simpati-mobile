@@ -932,19 +932,35 @@ class _PresensiScreenState extends State<PresensiScreen> {
             ],
           ),
           const SizedBox(height: 4),
-          Text(
-            _isInRadius ? 'Anda di lokasi' : 'Luar jangkauan',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w900,
-              color: _isInRadius ? AppTheme.success : AppTheme.danger,
-            ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: _isInRadius ? AppTheme.success : AppTheme.danger,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                _isInRadius ? 'SAFE ZONE' : 'OUT OF ZONE',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  color: _isInRadius ? AppTheme.success : AppTheme.danger,
+                ),
+              ),
+            ],
           ),
-          if (_distance != null)
+          if (_distance != null && _office != null) ...[
+            const SizedBox(height: 2),
             Text(
-              'Jarak: ${_distance!.toStringAsFixed(0)}m',
-              style: const TextStyle(fontSize: 9, color: Colors.grey),
+              '${_distance!.toStringAsFixed(0)}m dari ${_office!['radius_meters'] ?? 100}m',
+              style: const TextStyle(fontSize: 9, color: Colors.grey, fontWeight: FontWeight.bold),
             ),
+          ],
         ],
       ),
     );

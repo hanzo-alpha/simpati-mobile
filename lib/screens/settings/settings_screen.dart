@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../providers/theme_provider.dart';
 import '../../config/theme.dart';
+import '../../providers/theme_provider.dart';
+import '../../services/biometric_service.dart';
 import '../../services/reminder_service.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -13,7 +14,10 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final ReminderService _reminderService = ReminderService();
+  final BiometricService _biometricService = BiometricService();
   bool _reminderEnabled = true;
+  bool _biometricEnabled = false;
+  bool _biometricAvailable = false;
 
   @override
   void initState() {
@@ -23,7 +27,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _loadSettings() async {
     final enabled = await _reminderService.isReminderEnabled();
-    setState(() => _reminderEnabled = enabled);
+    final bioEnabled = await _biometricService.isBiometricEnabled();
+    final bioAvail = await _biometricService.isBiometricAvailable();
+
+    setState(() {
+      _reminderEnabled = enabled;
+      _biometricEnabled = bioEnabled;
+      _biometricAvailable = bioAvail;
+    });
   }
 
   @override
@@ -62,6 +73,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
               },
             ),
             icon: Icons.notifications_active_outlined,
+          ),
+          const Divider(height: 1),
+          _buildSectionHeader('Keamanan & Biometrik'),
+          _buildSettingTile(
+            title: 'Autentikasi Sidik Jari / Face ID',
+            subtitle: _biometricAvailable
+                ? (_biometricEnabled
+                    ? 'Sidik Jari / Face ID terdaftar & aktif untuk login'
+                    : 'Aktifkan login cepat tanpa mengetik password')
+                : 'Perangkat tidak mendukung sensor biometrik',
+            trailing: Switch.adaptive(
+              value: _biometricEnabled,
+              activeThumbColor: AppTheme.teal500,
+              onChanged: _biometricAvailable
+                  ? (value) async {
+                      if (value) {
+                        final bool ok = await _biometricService.authenticate(
+                          localizedReason: 'Konfirmasi Sidik Jari / Face ID Anda',
+                        );
+                        if (ok) {
+                          await _biometricService.setBiometricEnabled(true);
+                          setState(() => _biometricEnabled = true);
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('✅ Autentikasi Biometrik Berhasil Diaktifkan!'),
+                              backgroundColor: AppTheme.success,
+                            ),
+                          );
+                        }
+                      } else {
+                        await _biometricService.setBiometricEnabled(false);
+                        setState(() => _biometricEnabled = false);
+                      }
+                    }
+                  : null,
+            ),
+            icon: Icons.fingerprint_rounded,
           ),
           const Divider(height: 1),
           _buildSectionHeader('Informasi'),

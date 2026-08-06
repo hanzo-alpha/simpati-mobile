@@ -31,6 +31,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   List<dynamic> _announcements = [];
   Map<String, dynamic>? _office;
   Map<String, dynamic> _stats = {'hadir': '0', 'terlambat': '0', 'alpha': '0'};
+  Map<String, dynamic>? _tppSummary;
   Position? _currentPosition;
   double? _distanceToOffice;
   bool isLoading = true;
@@ -100,6 +101,11 @@ class _DashboardScreenState extends State<DashboardScreen>
       try {
         final annRes = await _api.getAnnouncements();
         _announcements = annRes.data['announcements'] ?? [];
+      } catch (_) {}
+
+      try {
+        final statsRes = await _api.getStatistics();
+        _tppSummary = statsRes.data['tpp_summary'];
       } catch (_) {}
 
       if (!mounted) return;
@@ -662,6 +668,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          _buildTppSummaryCard(),
                           Padding(
                             padding: const EdgeInsets.only(left: 4, bottom: 12),
                             child: Text(
@@ -707,6 +714,103 @@ class _DashboardScreenState extends State<DashboardScreen>
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildTppSummaryCard() {
+    final performanceScore = _tppSummary?['skor_kinerja_persen'] ?? 100;
+    final totalDeduction = _tppSummary?['total_potongan_persen'] ?? 0;
+    final breakdown = _tppSummary?['potongan_breakdown'] ?? {};
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppTheme.navy800,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppTheme.teal500.withAlpha(60)),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.teal500.withAlpha(20),
+            blurRadius: 15,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppTheme.teal500.withAlpha(30),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.account_balance_wallet_rounded, color: AppTheme.teal500, size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Estimasi Performa TPP',
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                      Text(
+                        'Tambahan Penghasilan Pegawai',
+                        style: TextStyle(fontSize: 11, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: (totalDeduction > 0 ? AppTheme.warning : AppTheme.success).withAlpha(30),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: totalDeduction > 0 ? AppTheme.warning : AppTheme.success,
+                  ),
+                ),
+                child: Text(
+                  '$performanceScore%',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 15,
+                    color: totalDeduction > 0 ? AppTheme.warning : AppTheme.success,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          const Divider(color: Colors.white12, height: 1),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Estimasi Potongan: -$totalDeduction%',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: totalDeduction > 0 ? AppTheme.danger : AppTheme.success,
+                ),
+              ),
+              Text(
+                'Terlambat: ${breakdown['terlambat_sedang'] ?? 0}x | Alpha: ${breakdown['alpha'] ?? 0}x',
+                style: const TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -807,6 +911,15 @@ class _DashboardScreenState extends State<DashboardScreen>
               context.read<NavigationProvider>().setIndex(3);
             },
           ),
+        const SizedBox(height: 12),
+        _buildActionCard(
+          context,
+          'Layanan Tukar Shift ASN',
+          'Pengajuan & Pertukaran Jadwal Shift',
+          Icons.swap_horiz_rounded,
+          AppTheme.teal400,
+          () => Navigator.pushNamed(context, '/shift_swap'),
+        ),
       ],
     );
   }

@@ -86,6 +86,96 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
     }
   }
 
+  void _exportPdfDialog() async {
+    final monthName = DateFormat('MMMM yyyy', 'id_ID').format(DateTime(_year, _month));
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.picture_as_pdf_rounded, color: AppTheme.teal500),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Cetak Rekap Presensi PDF',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Unduh rekapitulasi kehadiran resmi periode $monthName untuk dokumen pendukung klaim TPP ASN.',
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.teal500.withAlpha(20),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.teal500.withAlpha(40)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.verified_rounded, color: AppTheme.teal500, size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Terdokumentasi Otomatis & Terverifikasi SIMPATI Pemkab Soppeng',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.teal500),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton.icon(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                final pdfRes = await _api.exportAttendancePdf(year: _year, month: _month);
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('✅ ${pdfRes.data['title'] ?? 'Rekapitulasi PDF berhasil diunduh!'}'),
+                    backgroundColor: AppTheme.success,
+                  ),
+                );
+              } catch (e) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('❌ Gagal mengunduh PDF: $e'),
+                    backgroundColor: AppTheme.danger,
+                  ),
+                );
+              }
+            },
+            icon: const Icon(Icons.download_rounded, size: 18),
+            label: const Text('UNDUH PDF'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.teal500,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final monthName = DateFormat(
@@ -113,9 +203,18 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                       color: AppTheme.textPrimary(context),
                     ),
                   ),
-                  _buildGlassIconButton(
-                    icon: Icons.filter_alt_outlined,
-                    onTap: () {},
+                  Row(
+                    children: [
+                      _buildGlassIconButton(
+                        icon: Icons.picture_as_pdf_rounded,
+                        onTap: _exportPdfDialog,
+                      ),
+                      const SizedBox(width: 8),
+                      _buildGlassIconButton(
+                        icon: Icons.filter_alt_outlined,
+                        onTap: () {},
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -194,9 +293,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                         padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
                         itemCount: _groupedAttendances.length,
                         itemBuilder: (context, index) {
-                          final date = _groupedAttendances.keys.elementAt(
-                            index,
-                          );
+                          final date = _groupedAttendances.keys.elementAt(index);
                           final attendances = _groupedAttendances[date]!;
                           return _DayCard(date: date, attendances: attendances);
                         },
@@ -209,58 +306,66 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
     );
   }
 
-  Widget _buildGlassIconButton({
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    final dark = AppTheme.isDark(context);
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: dark ? Colors.white.withAlpha(10) : Colors.black.withAlpha(8),
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: dark
-                ? Colors.white.withAlpha(20)
-                : Colors.black.withAlpha(10),
-          ),
-        ),
-        child: Icon(icon, color: AppTheme.textSecondary(context), size: 20),
-      ),
-    );
-  }
+  Widget _buildTppCard() {
+    if (_tppSummary == null) return const SizedBox();
 
-  Widget _buildGlassCard({required Widget child, EdgeInsetsGeometry? padding}) {
-    final dark = AppTheme.isDark(context);
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          padding: padding,
-          decoration: BoxDecoration(
-            color: dark
-                ? Colors.white.withAlpha(10)
-                : Colors.white.withAlpha(200),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: dark
-                  ? Colors.white.withAlpha(20)
-                  : Colors.black.withAlpha(8),
+    final breakdown = _tppSummary!['potongan_breakdown'] ?? {};
+    final performanceScore = _tppSummary!['skor_kinerja_persen'] ?? 100;
+    final totalDeduction = _tppSummary!['total_potongan_persen'] ?? 0;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppTheme.navy800,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppTheme.teal500.withAlpha(50)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppTheme.teal500.withAlpha(30),
+              ),
+              child: const Icon(Icons.account_balance_wallet_rounded, color: AppTheme.teal500, size: 24),
             ),
-            boxShadow: dark
-                ? null
-                : [
-                    BoxShadow(
-                      color: Colors.black.withAlpha(10),
-                      blurRadius: 15,
-                      offset: const Offset(0, 4),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Perhitungan TPP ASN',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey,
                     ),
-                  ],
-          ),
-          child: child,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Performa: $performanceScore%',
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                    ),
+                  ),
+                  Text(
+                    'Est. Potongan: -$totalDeduction% (${breakdown['terlambat_sedang'] ?? 0}x Terlambat, ${breakdown['alpha'] ?? 0}x Alpha)',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: totalDeduction > 0 ? AppTheme.danger : AppTheme.success,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -272,16 +377,25 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.event_busy_rounded,
-            size: 80,
-            color: AppTheme.textMuted(context).withAlpha(60),
+            Icons.history_toggle_off_rounded,
+            size: 64,
+            color: AppTheme.textMuted(context),
           ),
           const SizedBox(height: 16),
           Text(
-            'Belum ada riwayat pada bulan ini',
+            'Tidak ada riwayat presensi',
             style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
               color: AppTheme.textSecondary(context),
-              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Silakan pilih bulan/tahun lain',
+            style: TextStyle(
+              fontSize: 12,
+              color: AppTheme.textMuted(context),
             ),
           ),
         ],
@@ -289,68 +403,34 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
     );
   }
 
-  Widget _buildTppCard() {
-    final totalDeduction = _tppSummary?['total_deduction_percent'] ?? 0.0;
-    final performanceScore = _tppSummary?['performance_score_percent'] ?? 100.0;
-    final breakdown = _tppSummary?['breakdown'] ?? {};
+  Widget _buildGlassIconButton({
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          shape: BoxShape.circle,
+          border: Border.all(color: Theme.of(context).dividerColor),
+        ),
+        child: Icon(icon, color: AppTheme.textPrimary(context), size: 18),
+      ),
+    );
+  }
 
+  Widget _buildGlassCard({required Widget child, EdgeInsetsGeometry? padding}) {
+    final dark = AppTheme.isDark(context);
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      padding: const EdgeInsets.all(16),
+      padding: padding,
       decoration: BoxDecoration(
-        color: AppTheme.teal500.withAlpha(20),
+        color: dark ? Theme.of(context).cardColor.withAlpha(200) : Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppTheme.teal500.withAlpha(50)),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppTheme.teal500.withAlpha(30),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.account_balance_wallet_outlined,
-              color: AppTheme.teal500,
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Kalkulasi TPP Pemda',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[400],
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Performa: $performanceScore%',
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white,
-                  ),
-                ),
-                Text(
-                  'Est. Potongan: -$totalDeduction% (${breakdown['terlambat_sedang'] ?? 0}x Terlambat, ${breakdown['alpha'] ?? 0}x Alpha)',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: totalDeduction > 0 ? AppTheme.danger : AppTheme.success,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+      child: child,
     );
   }
 }
@@ -373,66 +453,44 @@ class _DayCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: dark ? Theme.of(context).cardColor.withAlpha(150) : Colors.white,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: dark ? Colors.white.withAlpha(10) : Colors.black.withAlpha(8),
-        ),
-        boxShadow: dark
-            ? null
-            : [
-                BoxShadow(
-                  color: Colors.black.withAlpha(10),
-                  blurRadius: 15,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-          child: Padding(
-            padding: const EdgeInsets.all(18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          dayName,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w900,
-                            fontSize: 16,
-                            color: AppTheme.textPrimary(context),
-                          ),
-                        ),
-                        Text(
-                          dateStr,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppTheme.textSecondary(context),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
+                    Text(
+                      dayName,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
+                        color: AppTheme.textPrimary(context),
+                      ),
                     ),
-                    Icon(
-                      Icons.more_vert,
-                      color: AppTheme.textMuted(context),
-                      size: 20,
+                    Text(
+                      dateStr,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.textSecondary(context),
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
-                Divider(color: AppTheme.dividerColor(context), height: 1),
-                const SizedBox(height: 16),
-                ...attendances.map((att) => _buildAttendaceRow(context, att)),
               ],
             ),
-          ),
+            const SizedBox(height: 20),
+            Divider(color: AppTheme.dividerColor(context), height: 1),
+            const SizedBox(height: 16),
+            ...attendances.map((att) => _buildAttendaceRow(context, att)),
+          ],
         ),
       ),
     );

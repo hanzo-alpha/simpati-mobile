@@ -14,7 +14,13 @@ class AuthProvider extends ChangeNotifier {
   bool get isLoggedIn => _user != null;
   String? get error => _error;
 
-  String get userName => _user?['name'] ?? 'ASN';
+  String get userName =>
+      _user?['name'] ??
+      _user?['nama'] ??
+      _user?['profile']?['nama'] ??
+      _user?['profile']?['nama_lengkap'] ??
+      (_user?['nip'] != null ? 'ASN (${_user!['nip']})' : 'ASN Kabupaten Soppeng');
+
   String get userNip => _user?['nip'] ?? '';
   String get userRole => _user?['role']?['display_name'] ?? 'ASN';
   String get userOpdName => _user?['office']?['opd_name'] ?? '-';
@@ -76,9 +82,15 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> logout() async {
-    await _api.logout();
-    _user = null;
-    notifyListeners();
+    try {
+      await _api.logout();
+    } catch (e) {
+      debugPrint('Logout exception handled gracefully: $e');
+    } finally {
+      await _api.clearToken();
+      _user = null;
+      notifyListeners();
+    }
   }
 
   String _extractError(dynamic e) {

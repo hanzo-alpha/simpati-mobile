@@ -9,34 +9,141 @@ class NotificationScreen extends StatefulWidget {
 }
 
 class _NotificationScreenState extends State<NotificationScreen> {
-  final List<Map<String, dynamic>> _dummyNotifications = [
+  final List<Map<String, dynamic>> _notifications = [
     {
-      'title': 'Pengingat Presensi',
-      'body': 'Jangan lupa untuk melakukan presensi Masuk hari ini.',
-      'time': '07:00 Pagi',
+      'id': '1',
+      'title': 'Pengingat Presensi Masuk',
+      'body': 'Jangan lupa untuk melakukan presensi Masuk hari ini sebelum jam 07:30 WITA.',
+      'time': '07:00 WITA',
       'icon': Icons.access_time_filled_rounded,
       'color': AppTheme.warning,
       'isRead': false,
+      'route': '/home',
+      'tabIndex': 1, // Presensi tab
     },
     {
-      'title': 'Presensi Berhasil',
-      'body': 'Presensi masuk Anda telah tercatat pada 07:45.',
-      'time': '07:45 Pagi',
+      'id': '2',
+      'title': 'Presensi Berhasil Recorded',
+      'body': 'Presensi masuk Anda telah tercatat pada 07:45 WITA dengan lokasi terverifikasi.',
+      'time': '07:45 WITA',
       'icon': Icons.check_circle_rounded,
       'color': AppTheme.success,
       'isRead': true,
+      'route': '/home',
+      'tabIndex': 2, // Riwayat tab
     },
     {
+      'id': '3',
       'title': 'Pengajuan Cuti Disetujui',
-      'body': 'Pengajuan cuti tahunan Anda telah disetujui oleh atasan.',
+      'body': 'Pengajuan cuti tahunan Anda selama 2 hari telah disetujui oleh Atasan Langsung.',
       'time': 'Kemarin',
       'icon': Icons.event_available_rounded,
       'color': AppTheme.teal500,
       'isRead': true,
+      'route': '/pengajuan',
+    },
+    {
+      'id': '4',
+      'title': 'Permohonan Tukar Shift ASN',
+      'body': 'Rekan kerja mengajukan permohonan pertukaran jadwal piket shift dengan Anda.',
+      'time': '2 Hari Lalu',
+      'icon': Icons.swap_horiz_rounded,
+      'color': AppTheme.info,
+      'isRead': false,
+      'route': '/shift_swap',
     },
   ];
 
-  Widget _buildGlassCard({required Widget child, required bool isRead}) {
+  void _handleNotificationTap(Map<String, dynamic> notif) {
+    setState(() {
+      notif['isRead'] = true;
+    });
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: AppTheme.navy800,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: (notif['color'] as Color).withAlpha(30),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(notif['icon'], color: notif['color'], size: 24),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        notif['title'],
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Text(
+                        notif['time'],
+                        style: const TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Divider(color: Colors.white12, height: 1),
+            const SizedBox(height: 16),
+            Text(
+              notif['body'],
+              style: const TextStyle(fontSize: 14, color: Colors.white70, height: 1.5),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  if (notif['route'] != null) {
+                    Navigator.pushNamed(context, notif['route']);
+                  }
+                },
+                icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                label: const Text('BUKA FITUR TERKAIT'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.teal500,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGlassCard({
+    required Widget child,
+    required bool isRead,
+    required VoidCallback onTap,
+  }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -60,12 +167,13 @@ class _NotificationScreenState extends State<NotificationScreen> {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
-        child: BackdropFilter(
-          filter: ColorFilter.mode(
-            Colors.black.withAlpha(10),
-            BlendMode.srcOver,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(20),
+            child: Padding(padding: const EdgeInsets.all(16), child: child),
           ),
-          child: Padding(padding: const EdgeInsets.all(16), child: child),
         ),
       ),
     );
@@ -120,11 +228,12 @@ class _NotificationScreenState extends State<NotificationScreen> {
               Expanded(
                 child: ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
-                  itemCount: _dummyNotifications.length,
+                  itemCount: _notifications.length,
                   itemBuilder: (context, index) {
-                    final notif = _dummyNotifications[index];
+                    final notif = _notifications[index];
                     return _buildGlassCard(
                       isRead: notif['isRead'],
+                      onTap: () => _handleNotificationTap(notif),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
