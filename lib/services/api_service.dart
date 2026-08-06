@@ -237,7 +237,7 @@ class ApiService {
   }) async {
     return await _dio.patch(
       '${ApiConfig.leaveRequests}/$id/status',
-      data: {'status': status, 'catatan_approval': ?catatanApproval},
+      data: {'status': status, 'catatan_approval': catatanApproval},
     );
   }
 
