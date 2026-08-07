@@ -134,15 +134,17 @@ class _FrontCameraSelfieScreenState extends State<FrontCameraSelfieScreen>
 
           // Step 1: Align Face Detected
           if (_currentStep == LivenessStep.alignFace) {
+            HapticFeedback.lightImpact();
             setState(() {
               _currentStep = LivenessStep.blinkEyes;
-              _livenessProgress = 0.40;
+              _livenessProgress = 0.45;
             });
           }
           // Step 2: Detect Real Eye Blink (Either eye probability drops below 0.35)
           else if (_currentStep == LivenessStep.blinkEyes) {
             if ((leftEye != null && leftEye < 0.35) ||
                 (rightEye != null && rightEye < 0.35)) {
+              HapticFeedback.lightImpact();
               setState(() {
                 _currentStep = LivenessStep.smileFace;
                 _livenessProgress = 0.75;
@@ -152,6 +154,7 @@ class _FrontCameraSelfieScreenState extends State<FrontCameraSelfieScreen>
           // Step 3: Detect Real Smile Expression (Smile probability above 0.50)
           else if (_currentStep == LivenessStep.smileFace) {
             if (smile != null && smile > 0.50) {
+              HapticFeedback.mediumImpact();
               setState(() {
                 _currentStep = LivenessStep.verified;
                 _livenessProgress = 1.0;

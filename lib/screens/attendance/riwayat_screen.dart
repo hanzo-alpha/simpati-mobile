@@ -18,6 +18,8 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
   Map<String, List<dynamic>> _groupedAttendances = {};
   Map<String, dynamic>? _tppSummary;
   bool _isLoading = true;
+  bool _isCalendarView = false;
+  String? _selectedDateFilter;
 
   @override
   void initState() {
@@ -223,13 +225,17 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                   Row(
                     children: [
                       _buildGlassIconButton(
-                        icon: Icons.picture_as_pdf_rounded,
-                        onTap: _exportPdfDialog,
+                        icon: _isCalendarView
+                            ? Icons.view_list_rounded
+                            : Icons.calendar_month_rounded,
+                        onTap: () => setState(() {
+                          _isCalendarView = !_isCalendarView;
+                        }),
                       ),
                       const SizedBox(width: 8),
                       _buildGlassIconButton(
-                        icon: Icons.filter_alt_outlined,
-                        onTap: () {},
+                        icon: Icons.picture_as_pdf_rounded,
+                        onTap: _exportPdfDialog,
                       ),
                     ],
                   ),
@@ -295,6 +301,8 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
 
             if (_tppSummary != null) _buildTppCard(),
 
+            if (_isCalendarView) _buildCalendarGridView(),
+
             // List
             Expanded(
               child: _isLoading
@@ -308,11 +316,9 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                       color: AppTheme.teal500,
                       child: ListView.builder(
                         padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                        itemCount: _groupedAttendances.length,
+                        itemCount: _filteredKeys.length,
                         itemBuilder: (context, index) {
-                          final date = _groupedAttendances.keys.elementAt(
-                            index,
-                          );
+                          final date = _filteredKeys.elementAt(index);
                           final attendances = _groupedAttendances[date]!;
                           return _DayCard(date: date, attendances: attendances);
                         },
@@ -393,6 +399,183 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Iterable<String> get _filteredKeys {
+    if (_selectedDateFilter != null) {
+      return _groupedAttendances.keys.where((k) => k == _selectedDateFilter);
+    }
+    return _groupedAttendances.keys;
+  }
+
+  Widget _buildCalendarGridView() {
+    final dark = AppTheme.isDark(context);
+    final daysInMonth = DateTime(_year, _month + 1, 0).day;
+    final firstWeekday = DateTime(_year, _month, 1).weekday; // 1 = Mon, ..., 7 = Sun
+    final dayLabels = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+    final now = DateTime.now();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: dark ? Theme.of(context).cardColor.withAlpha(200) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Theme.of(context).dividerColor),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Visualisasi Kalender Presensi',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                ),
+                Row(
+                  children: [
+                    _buildLegendDot(AppTheme.success, 'Hadir'),
+                    const SizedBox(width: 8),
+                    _buildLegendDot(AppTheme.warning, 'Terlambat'),
+                    const SizedBox(width: 8),
+                    _buildLegendDot(AppTheme.danger, 'Alpha'),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: dayLabels
+                  .map(
+                    (lbl) => Expanded(
+                      child: Center(
+                        child: Text(
+                          lbl,
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textSecondary(context),
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+            const SizedBox(height: 6),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: (firstWeekday - 1) + daysInMonth,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 7,
+                childAspectRatio: 1.1,
+              ),
+              itemBuilder: (context, index) {
+                if (index < firstWeekday - 1) {
+                  return const SizedBox();
+                }
+
+                final dayNumber = index - (firstWeekday - 2);
+                final dateStr =
+                    '$_year-${_month.toString().padLeft(2, '0')}-${dayNumber.toString().padLeft(2, '0')}';
+                final dateObj = DateTime(_year, _month, dayNumber);
+                final isWeekend = dateObj.weekday == 6 || dateObj.weekday == 7;
+                final isFuture = dateObj.isAfter(now);
+
+                final attendances = _groupedAttendances[dateStr] ?? [];
+                Color statusColor = Colors.transparent;
+
+                if (attendances.isNotEmpty) {
+                  bool hasLate = attendances.any(
+                    (a) => a['status'] != 'tepat_waktu' && a['jenis'] == 'masuk',
+                  );
+                  statusColor = hasLate ? AppTheme.warning : AppTheme.success;
+                } else if (!isWeekend && !isFuture) {
+                  statusColor = AppTheme.danger;
+                }
+
+                final isSelected = _selectedDateFilter == dateStr;
+
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedDateFilter = isSelected ? null : dateStr;
+                    });
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? AppTheme.teal500.withAlpha(40)
+                          : isWeekend
+                          ? (dark ? Colors.white.withAlpha(5) : Colors.grey.withAlpha(20))
+                          : (dark ? Colors.white.withAlpha(10) : Colors.white),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: isSelected
+                            ? AppTheme.teal500
+                            : Theme.of(context).dividerColor,
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          '$dayNumber',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: isWeekend
+                                ? AppTheme.textMuted(context)
+                                : AppTheme.textPrimary(context),
+                          ),
+                        ),
+                        if (statusColor != Colors.transparent) ...[
+                          const SizedBox(height: 2),
+                          Container(
+                            width: 5,
+                            height: 5,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: statusColor,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLegendDot(Color color, String label) {
+    return Row(
+      children: [
+        Container(
+          width: 6,
+          height: 6,
+          decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 9,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.textSecondary(context),
+          ),
+        ),
+      ],
     );
   }
 
