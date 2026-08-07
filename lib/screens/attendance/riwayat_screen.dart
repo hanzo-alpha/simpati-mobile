@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -87,7 +86,10 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
   }
 
   void _exportPdfDialog() async {
-    final monthName = DateFormat('MMMM yyyy', 'id_ID').format(DateTime(_year, _month));
+    final monthName = DateFormat(
+      'MMMM yyyy',
+      'id_ID',
+    ).format(DateTime(_year, _month));
 
     showDialog(
       context: context,
@@ -123,12 +125,20 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
               ),
               child: const Row(
                 children: [
-                  Icon(Icons.verified_rounded, color: AppTheme.teal500, size: 20),
+                  Icon(
+                    Icons.verified_rounded,
+                    color: AppTheme.teal500,
+                    size: 20,
+                  ),
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Terdokumentasi Otomatis & Terverifikasi SIMPATI Pemkab Soppeng',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.teal500),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.teal500,
+                      ),
                     ),
                   ),
                 ],
@@ -145,11 +155,16 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
             onPressed: () async {
               Navigator.pop(ctx);
               try {
-                final pdfRes = await _api.exportAttendancePdf(year: _year, month: _month);
+                final pdfRes = await _api.exportAttendancePdf(
+                  year: _year,
+                  month: _month,
+                );
                 if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('✅ ${pdfRes.data['title'] ?? 'Rekapitulasi PDF berhasil diunduh!'}'),
+                    content: Text(
+                      '✅ ${pdfRes.data['title'] ?? 'Rekapitulasi PDF berhasil diunduh!'}',
+                    ),
                     backgroundColor: AppTheme.success,
                   ),
                 );
@@ -168,7 +183,9 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.teal500,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           ),
         ],
@@ -293,7 +310,9 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                         padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
                         itemCount: _groupedAttendances.length,
                         itemBuilder: (context, index) {
-                          final date = _groupedAttendances.keys.elementAt(index);
+                          final date = _groupedAttendances.keys.elementAt(
+                            index,
+                          );
                           final attendances = _groupedAttendances[date]!;
                           return _DayCard(date: date, attendances: attendances);
                         },
@@ -330,7 +349,11 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                 shape: BoxShape.circle,
                 color: AppTheme.teal500.withAlpha(30),
               ),
-              child: const Icon(Icons.account_balance_wallet_rounded, color: AppTheme.teal500, size: 24),
+              child: const Icon(
+                Icons.account_balance_wallet_rounded,
+                color: AppTheme.teal500,
+                size: 24,
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -358,7 +381,9 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
                     'Est. Potongan: -$totalDeduction% (${breakdown['terlambat_sedang'] ?? 0}x Terlambat, ${breakdown['alpha'] ?? 0}x Alpha)',
                     style: TextStyle(
                       fontSize: 11,
-                      color: totalDeduction > 0 ? AppTheme.danger : AppTheme.success,
+                      color: totalDeduction > 0
+                          ? AppTheme.danger
+                          : AppTheme.success,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -393,10 +418,7 @@ class _RiwayatScreenState extends State<RiwayatScreen> {
           const SizedBox(height: 4),
           Text(
             'Silakan pilih bulan/tahun lain',
-            style: TextStyle(
-              fontSize: 12,
-              color: AppTheme.textMuted(context),
-            ),
+            style: TextStyle(fontSize: 12, color: AppTheme.textMuted(context)),
           ),
         ],
       ),

@@ -16,7 +16,10 @@ import 'screens/settings/settings_screen.dart';
 import 'screens/support/help_center_screen.dart';
 import 'screens/leave/approval_screen.dart';
 import 'screens/leave/shift_swap_screen.dart';
+import 'screens/leave/attendance_correction_screen.dart';
 import 'screens/notification/notification_screen.dart';
+import 'screens/home/monitoring_map_screen.dart';
+import 'screens/attendance/event_presensi_screen.dart';
 import 'services/notification_service.dart';
 
 void main() async {
@@ -82,6 +85,9 @@ class SimpatiApp extends StatelessWidget {
         '/notification': (_) => const NotificationScreen(),
         '/approval': (_) => const ApprovalScreen(),
         '/shift_swap': (_) => const ShiftSwapScreen(),
+        '/monitoring_map': (_) => const MonitoringMapScreen(),
+        '/attendance_correction': (_) => const AttendanceCorrectionScreen(),
+        '/event_presensi': (_) => const EventPresensiScreen(),
       },
     );
   }

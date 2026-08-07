@@ -263,16 +263,48 @@ class _DashboardScreenState extends State<DashboardScreen>
                                   ],
                                 ),
                               ),
-                              IconButton(
-                                onPressed: () => Navigator.pushNamed(
-                                  context,
-                                  '/notification',
-                                ),
-                                icon: const Icon(
-                                  Icons.notifications_none_rounded,
-                                  color: Colors.white,
-                                  size: 28,
-                                ),
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withAlpha(30),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: Colors.white.withAlpha(40),
+                                      ),
+                                    ),
+                                    child: Image.asset(
+                                      'assets/images/logo_clean.png',
+                                      width: 22,
+                                      height: 22,
+                                      fit: BoxFit.contain,
+                                      errorBuilder: (c, e, s) => Image.asset(
+                                        'assets/images/logo.png',
+                                        width: 22,
+                                        height: 22,
+                                        fit: BoxFit.contain,
+                                        errorBuilder: (c2, e2, s2) => const Icon(
+                                          Icons.shield_rounded,
+                                          size: 20,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  IconButton(
+                                    onPressed: () => Navigator.pushNamed(
+                                      context,
+                                      '/notification',
+                                    ),
+                                    icon: const Icon(
+                                      Icons.notifications_none_rounded,
+                                      color: Colors.white,
+                                      size: 28,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
@@ -891,7 +923,16 @@ class _DashboardScreenState extends State<DashboardScreen>
           ],
         ),
         const SizedBox(height: 12),
-        if (isSupervisor)
+        if (isSupervisor) ...[
+          _buildActionCard(
+            context,
+            'Peta Monitoring Bawahan',
+            'Sebaran Lokasi Real-time Presensi OPD',
+            Icons.map_rounded,
+            AppTheme.teal400,
+            () => Navigator.pushNamed(context, '/monitoring_map'),
+          ),
+          const SizedBox(height: 12),
           _buildActionCard(
             context,
             'Persetujuan Izin & Cuti',
@@ -899,7 +940,8 @@ class _DashboardScreenState extends State<DashboardScreen>
             Icons.approval_rounded,
             AppTheme.teal500,
             () => Navigator.pushNamed(context, '/approval'),
-          )
+          ),
+        ]
         else
           _buildActionCard(
             context,
@@ -919,6 +961,24 @@ class _DashboardScreenState extends State<DashboardScreen>
           Icons.swap_horiz_rounded,
           AppTheme.teal400,
           () => Navigator.pushNamed(context, '/shift_swap'),
+        ),
+        const SizedBox(height: 12),
+        _buildActionCard(
+          context,
+          'Koreksi Presensi / Lupa Absen',
+          'Pengajuan Peresetujuan Lupa Presensi',
+          Icons.edit_calendar_rounded,
+          AppTheme.info,
+          () => Navigator.pushNamed(context, '/attendance_correction'),
+        ),
+        const SizedBox(height: 12),
+        _buildActionCard(
+          context,
+          'Presensi Apel & Upacara',
+          'Pemindaian QR Presensi Kegiatan Gabungan',
+          Icons.qr_code_scanner_rounded,
+          AppTheme.warning,
+          () => Navigator.pushNamed(context, '/event_presensi'),
         ),
       ],
     );

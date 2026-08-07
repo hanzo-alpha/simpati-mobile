@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import '../../config/theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/notification_service.dart';
 
@@ -16,7 +16,7 @@ class _SplashScreenState extends State<SplashScreen>
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
-  late Animation<double> _rotateAnimation;
+  late Animation<double> _pulseAnimation;
 
   @override
   void initState() {
@@ -33,17 +33,17 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
 
-    _scaleAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
+    _scaleAnimation = Tween<double>(begin: 0.6, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.0, 0.5, curve: Curves.easeOutBack),
+        curve: const Interval(0.0, 0.6, curve: Curves.easeOutBack),
       ),
     );
 
-    _rotateAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+    _pulseAnimation = Tween<double>(begin: 0.95, end: 1.05).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.0, 0.5, curve: Curves.easeOutCubic),
+        curve: Curves.easeInOut,
       ),
     );
 
@@ -75,18 +75,27 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.navy900,
+      backgroundColor: const Color(0xFF0F172A), // Deep Slate Navy
       body: Stack(
         children: [
-          // Dynamic Background
+          // Dynamic Glowing Radial Ambient Background
           Positioned.fill(
             child: CustomPaint(painter: GlowPainter(animation: _controller)),
           ),
 
-          // Glassmorphism overlay (subtle)
+          // Subtraction subtle glass overlay
           Positioned.fill(
             child: Container(
-              decoration: BoxDecoration(color: AppTheme.navy900.withAlpha(50)),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    const Color(0xFF0F172A).withAlpha(100),
+                    const Color(0xFF0A0E27).withAlpha(220),
+                  ],
+                ),
+              ),
             ),
           ),
 
@@ -101,80 +110,113 @@ class _SplashScreenState extends State<SplashScreen>
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // Logo Container
-                        RotationTransition(
-                          turns: _rotateAnimation,
+                        // Official Logo Container with Glowing Glassmorphism Card
+                        ScaleTransition(
+                          scale: _pulseAnimation,
                           child: Container(
-                            width: 120,
-                            height: 120,
+                            width: 140,
+                            height: 140,
+                            padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              gradient: const LinearGradient(
+                              gradient: LinearGradient(
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
-                                colors: [AppTheme.teal500, AppTheme.teal700],
+                                colors: [
+                                  Colors.white.withAlpha(30),
+                                  Colors.white.withAlpha(10),
+                                ],
                               ),
-                              borderRadius: BorderRadius.circular(32),
+                              borderRadius: BorderRadius.circular(36),
+                              border: Border.all(
+                                color: const Color(0xFF0D9488).withAlpha(150),
+                                width: 1.5,
+                              ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: AppTheme.teal500.withAlpha(80),
-                                  blurRadius: 50,
-                                  spreadRadius: 2,
+                                  color: const Color(0xFF0D9488).withAlpha(90),
+                                  blurRadius: 40,
+                                  spreadRadius: 4,
                                   offset: const Offset(0, 10),
                                 ),
                               ],
                             ),
-                            child: const Icon(
-                              Icons.shield_rounded,
-                              size: 60,
-                              color: Colors.white,
+                            child: Image.asset(
+                              'assets/images/logo_clean.png',
+                              fit: BoxFit.contain,
+                              errorBuilder: (ctx, err, stack) => Image.asset(
+                                'assets/images/logo.png',
+                                fit: BoxFit.contain,
+                                errorBuilder: (c, e, s) => const Icon(
+                                  Icons.shield_rounded,
+                                  size: 70,
+                                  color: Color(0xFF0D9488),
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                        const SizedBox(height: 40),
-                        // App Name
-                        const Text(
+                        const SizedBox(height: 36),
+
+                        // App Name Header
+                        Text(
                           'SIMPATI',
-                          style: TextStyle(
-                            fontSize: 42,
+                          style: GoogleFonts.outfit(
+                            fontSize: 44,
                             fontWeight: FontWeight.w900,
                             letterSpacing: 8,
                             color: Colors.white,
                             shadows: [
-                              Shadow(color: AppTheme.teal500, blurRadius: 20),
+                              Shadow(
+                                color: const Color(0xFF0D9488).withAlpha(180),
+                                blurRadius: 24,
+                              ),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'SISTEM INFORMASI MANAJEMEN PRESENSI TERINTEGRASI',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.grey[400],
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppTheme.teal500.withAlpha(30),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: AppTheme.teal500.withAlpha(100),
+                        const SizedBox(height: 10),
+
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 36),
+                          child: Text(
+                            'SISTEM INFORMASI MANAJEMEN PRESENSI\nTERINTEGRASI',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.inter(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              height: 1.45,
+                              color: Colors.grey.shade300,
+                              letterSpacing: 0.8,
                             ),
                           ),
-                          child: const Text(
-                            'KABUPATEN SOPPENG',
-                            style: TextStyle(
+                        ),
+                        const SizedBox(height: 18),
+
+                        // Metallic Region Badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF0D9488), Color(0xFF10B981)],
+                            ),
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF0D9488).withAlpha(80),
+                                blurRadius: 16,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            'PEMKAB SOPPENG',
+                            style: GoogleFonts.outfit(
                               fontSize: 12,
                               fontWeight: FontWeight.w800,
-                              color: AppTheme.teal500,
-                              letterSpacing: 2,
+                              color: Colors.white,
+                              letterSpacing: 2.5,
                             ),
                           ),
                         ),
@@ -186,21 +228,35 @@ class _SplashScreenState extends State<SplashScreen>
             ),
           ),
 
-          // Bottom Indicator
+          // Sleek Bottom Progress Indicator
           Positioned(
-            bottom: 80,
+            bottom: 60,
             left: 0,
             right: 0,
             child: FadeTransition(
               opacity: _fadeAnimation,
-              child: const Center(
-                child: SizedBox(
-                  width: 30,
-                  height: 30,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(AppTheme.teal500),
-                  ),
+              child: Center(
+                child: Column(
+                  children: [
+                    const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Color(0xFF0D9488),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Memuat data presensi...',
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        color: Colors.grey.shade500,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -219,30 +275,29 @@ class GlowPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 60);
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 70);
 
-    // Drawing floating blobs
     final center = Offset(size.width / 2, size.height / 2);
 
-    // Blob 1
-    paint.color = AppTheme.teal500.withAlpha(25);
+    // Glowing Teal Ambient Blob
+    paint.color = const Color(0xFF0D9488).withAlpha(35);
     canvas.drawCircle(
       Offset(
-        center.dx + 50 * animation.value,
-        center.dy - 100 * (1 - animation.value),
+        center.dx + 40 * animation.value,
+        center.dy - 80 * (1 - animation.value),
       ),
-      120,
+      140,
       paint,
     );
 
-    // Blob 2
-    paint.color = AppTheme.navy700.withAlpha(40);
+    // Glowing Emerald Ambient Blob
+    paint.color = const Color(0xFF10B981).withAlpha(25);
     canvas.drawCircle(
       Offset(
-        center.dx - 100 * (1 - animation.value),
-        center.dy + 80 * animation.value,
+        center.dx - 80 * (1 - animation.value),
+        center.dy + 60 * animation.value,
       ),
-      150,
+      160,
       paint,
     );
   }

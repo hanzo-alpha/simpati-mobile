@@ -202,6 +202,17 @@ class ApiService {
     return await _dio.get('${ApiConfig.baseUrl}/shift-swaps');
   }
 
+  Future<Response> getSubordinateShiftSwaps({String? status}) async {
+    final Map<String, dynamic> params = {};
+    if (status != null && status.isNotEmpty) {
+      params['status'] = status;
+    }
+    return await _dio.get(
+      '${ApiConfig.baseUrl}/shift-swaps/subordinates',
+      queryParameters: params,
+    );
+  }
+
   Future<Response> createShiftSwap({
     required int targetUserId,
     required String tanggalShift,
@@ -224,6 +235,54 @@ class ApiService {
     return await _dio.patch(
       '${ApiConfig.baseUrl}/shift-swaps/$id/status',
       data: {'status': status},
+    );
+  }
+
+  // ─── Attendance Corrections (Lupa Absen) ─────────
+  Future<Response> getAttendanceCorrections() async {
+    return await _dio.get('${ApiConfig.baseUrl}/attendance-corrections');
+  }
+
+  Future<Response> getSubordinateAttendanceCorrections({String? status}) async {
+    final Map<String, dynamic> params = {};
+    if (status != null && status.isNotEmpty) {
+      params['status'] = status;
+    }
+    return await _dio.get(
+      '${ApiConfig.baseUrl}/attendance-corrections/subordinates',
+      queryParameters: params,
+    );
+  }
+
+  Future<Response> submitAttendanceCorrection({
+    required String tanggal,
+    required String jenis,
+    required String jamKoreksi,
+    required String alasan,
+    String? lampiranPath,
+  }) async {
+    final formData = FormData.fromMap({
+      'tanggal': tanggal,
+      'jenis': jenis,
+      'jam_koreksi': jamKoreksi,
+      'alasan': alasan,
+      if (lampiranPath != null)
+        'lampiran': await MultipartFile.fromFile(lampiranPath),
+    });
+    return await _dio.post(
+      '${ApiConfig.baseUrl}/attendance-corrections',
+      data: formData,
+    );
+  }
+
+  Future<Response> updateAttendanceCorrectionStatus({
+    required int id,
+    required String status,
+    String? catatanApproval,
+  }) async {
+    return await _dio.patch(
+      '${ApiConfig.baseUrl}/attendance-corrections/$id/status',
+      data: {'status': status, 'catatan_approval': catatanApproval},
     );
   }
 
@@ -282,6 +341,26 @@ class ApiService {
   // ─── FCM Token ─────────────────────────────────
   Future<Response> updateFcmToken(String token) async {
     return await _dio.post(ApiConfig.fcmToken, data: {'fcm_token': token});
+  }
+
+  // ─── Event Presensi / Apel ────────────────────────────
+  Future<Response> getActiveEvents() async {
+    return await _dio.get('${ApiConfig.baseUrl}/events/active');
+  }
+
+  Future<Response> scanEventQr({
+    required String qrToken,
+    double? latitude,
+    double? longitude,
+  }) async {
+    return await _dio.post(
+      '${ApiConfig.baseUrl}/events/scan',
+      data: {
+        'qr_token': qrToken,
+        if (latitude != null) 'latitude': latitude,
+        if (longitude != null) 'longitude': longitude,
+      },
+    );
   }
 
   // ─── Ranking ───────────────────────────────────

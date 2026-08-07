@@ -7,6 +7,7 @@ import '../../config/theme.dart';
 import '../../services/api_service.dart';
 import '../../services/offline_sync_service.dart';
 import '../../config/enums.dart';
+import 'front_camera_selfie_screen.dart';
 
 class PresensiScreen extends StatefulWidget {
   const PresensiScreen({super.key});
@@ -355,46 +356,97 @@ class _PresensiScreenState extends State<PresensiScreen> {
   Future<void> _takeSelfie() async {
     await _showLivenessChallengeDialog(() {
       if (!_allowRearCamera && !_allowGalleryUpload) {
-        // Direct front camera (selfie live) only
+        // Direct front camera (live selfie) only
         _pickImage(ImageSource.camera, CameraDevice.front);
         return;
       }
 
       showModalBottomSheet(
         context: context,
+        backgroundColor: AppTheme.bgCard(context),
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         builder: (ctx) => SafeArea(
-          child: Wrap(
-            children: [
-              ListTile(
-                leading: const Icon(Icons.camera_front),
-                title: const Text('Kamera Depan (Selfie)'),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _pickImage(ImageSource.camera, CameraDevice.front);
-                },
-              ),
-              if (_allowRearCamera)
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+            child: Wrap(
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: AppTheme.dividerColor(context),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  child: Text(
+                    'Pilih Metode Pengambilan Foto',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textPrimary(context),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
                 ListTile(
-                  leading: const Icon(Icons.camera_alt),
-                  title: const Text('Kamera Utama (Belakang)'),
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.emerald500.withAlpha(25),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.camera_front_rounded, color: AppTheme.emerald500),
+                  ),
+                  title: const Text('Kamera Depan (Selfie)', style: TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: const Text('Ambil foto presensi dengan kamera depan HP'),
                   onTap: () {
                     Navigator.pop(ctx);
-                    _pickImage(ImageSource.camera, CameraDevice.rear);
+                    _pickImage(ImageSource.camera, CameraDevice.front);
                   },
                 ),
-              if (_allowGalleryUpload)
-                ListTile(
-                  leading: const Icon(Icons.photo_library),
-                  title: const Text('Pilih dari Galeri'),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    _pickImage(ImageSource.gallery, CameraDevice.front);
-                  },
-                ),
-            ],
+                if (_allowRearCamera)
+                  ListTile(
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.info.withAlpha(25),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.camera_rear_rounded, color: AppTheme.info),
+                    ),
+                    title: const Text('Kamera Belakang (Kamera Utama)', style: TextStyle(fontWeight: FontWeight.w600)),
+                    subtitle: const Text('Ambil foto presensi dengan kamera belakang HP'),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _pickImage(ImageSource.camera, CameraDevice.rear);
+                    },
+                  ),
+                if (_allowGalleryUpload)
+                  ListTile(
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.warning.withAlpha(25),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.photo_library_rounded, color: AppTheme.warning),
+                    ),
+                    title: const Text('Pilih dari Galeri HP', style: TextStyle(fontWeight: FontWeight.w600)),
+                    subtitle: const Text('Pilih file gambar foto presensi dari galeri'),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _pickImage(ImageSource.gallery, CameraDevice.front);
+                    },
+                  ),
+              ],
+            ),
           ),
         ),
       );
@@ -406,6 +458,19 @@ class _PresensiScreenState extends State<PresensiScreen> {
     CameraDevice preferredCamera,
   ) async {
     try {
+      if (source == ImageSource.camera && preferredCamera == CameraDevice.front) {
+        final XFile? selfiePhoto = await Navigator.push<XFile?>(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const FrontCameraSelfieScreen(),
+          ),
+        );
+        if (selfiePhoto != null && mounted) {
+          setState(() => _selfieImage = selfiePhoto);
+        }
+        return;
+      }
+
       final picker = ImagePicker();
       final image = await picker.pickImage(
         source: source,

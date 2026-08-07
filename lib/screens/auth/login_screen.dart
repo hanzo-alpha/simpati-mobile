@@ -104,29 +104,46 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Logo Box (Premium)
+                    // Official Logo Box (Premium Glassmorphism)
                     Container(
-                      width: 90,
-                      height: 90,
+                      width: 96,
+                      height: 96,
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
+                        gradient: LinearGradient(
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
-                          colors: [AppTheme.teal500, AppTheme.teal700],
+                          colors: [
+                            Colors.white.withAlpha(35),
+                            Colors.white.withAlpha(12),
+                          ],
                         ),
-                        borderRadius: BorderRadius.circular(24),
+                        borderRadius: BorderRadius.circular(26),
+                        border: Border.all(
+                          color: const Color(0xFF0D9488).withAlpha(140),
+                          width: 1.5,
+                        ),
                         boxShadow: [
                           BoxShadow(
-                            color: AppTheme.teal500.withAlpha(60),
+                            color: const Color(0xFF0D9488).withAlpha(70),
                             blurRadius: 30,
-                            offset: const Offset(0, 10),
+                            spreadRadius: 2,
+                            offset: const Offset(0, 8),
                           ),
                         ],
                       ),
-                      child: const Icon(
-                        Icons.shield_rounded,
-                        size: 45,
-                        color: Colors.white,
+                      child: Image.asset(
+                        'assets/images/logo_clean.png',
+                        fit: BoxFit.contain,
+                        errorBuilder: (ctx, err, stack) => Image.asset(
+                          'assets/images/logo.png',
+                          fit: BoxFit.contain,
+                          errorBuilder: (c, e, s) => const Icon(
+                            Icons.shield_rounded,
+                            size: 45,
+                            color: Color(0xFF0D9488),
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -251,6 +268,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: OutlinedButton.icon(
                             onPressed: () async {
                               final bioService = BiometricService();
+                              final messenger = ScaffoldMessenger.of(context);
+                              final nav = Navigator.of(context);
+
                               final bool authenticated = await bioService.authenticate(
                                 localizedReason: 'Verifikasi Sidik Jari / Face ID untuk Masuk SIMPATI',
                               );
@@ -260,16 +280,18 @@ class _LoginScreenState extends State<LoginScreen> {
                                   authOk = await auth.login(_nipController.text.trim(), _passwordController.text.trim());
                                 }
 
-                                if (authOk && mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
+                                if (!mounted) return;
+
+                                if (authOk) {
+                                  messenger.showSnackBar(
                                     const SnackBar(
                                       content: Text('✅ Autentikasi Biometrik Berhasil!'),
                                       backgroundColor: AppTheme.success,
                                     ),
                                   );
-                                  Navigator.pushReplacementNamed(context, '/home');
-                                } else if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
+                                  nav.pushReplacementNamed('/home');
+                                } else {
+                                  messenger.showSnackBar(
                                     const SnackBar(
                                       content: Text('⚠️ Silakan ketik NIP & Password Anda untuk login pertama kali.'),
                                       backgroundColor: AppTheme.warning,
@@ -433,6 +455,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         return;
                       }
 
+                      final messenger = ScaffoldMessenger.of(context);
                       setModalState(() => isSubmitting = true);
                       try {
                         final api = ApiService();
@@ -443,7 +466,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         );
                         if (!mounted) return;
                         Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        messenger.showSnackBar(
                           SnackBar(
                             content: Text('✅ ${res.data['message']}'),
                             backgroundColor: AppTheme.success,
@@ -451,7 +474,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         );
                       } catch (e) {
                         setModalState(() => isSubmitting = false);
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        messenger.showSnackBar(
                           SnackBar(
                             content: Text('❌ Gagal reset perangkat: $e'),
                             backgroundColor: AppTheme.danger,
