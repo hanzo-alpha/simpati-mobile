@@ -545,13 +545,13 @@ class _FrontCameraSelfieScreenState extends State<FrontCameraSelfieScreen>
   String _getChallengeTitle() {
     switch (_currentStep) {
       case LivenessStep.alignFace:
-        return 'Mendeteksi Wajah di Dalam Lingkaran...';
+        return 'Mendeteksi Wajah...';
       case LivenessStep.blinkEyes:
-        return 'TANTANGAN ML KIT: Silakan KEDIPKAN MATA';
+        return 'Silakan Kedipkan Mata';
       case LivenessStep.smileFace:
-        return 'TANTANGAN ML KIT: Silakan TERSENYUM';
+        return 'Silakan Tersenyum';
       case LivenessStep.verified:
-        return 'Verifikasi Wajah Live Berhasil! Tekan Tombol Foto';
+        return 'Verifikasi Wajah Berhasil! Tekan Tombol Foto';
     }
   }
 }

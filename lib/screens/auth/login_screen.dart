@@ -464,8 +464,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           password: resetPassCtrl.text.trim(),
                           alasan: resetReasonCtrl.text.trim(),
                         );
-                        if (!mounted) return;
-                        Navigator.pop(ctx);
+                        if (ctx.mounted) Navigator.pop(ctx);
                         messenger.showSnackBar(
                           SnackBar(
                             content: Text('✅ ${res.data['message']}'),

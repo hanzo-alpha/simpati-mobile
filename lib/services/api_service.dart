@@ -64,15 +64,31 @@ class ApiService {
 
   // ─── Token Management ──────────────────────────
   Future<void> saveToken(String token) async {
-    await _storage.write(key: _tokenKey, value: token);
+    try {
+      await _storage.write(key: _tokenKey, value: token);
+    } catch (e) {
+      debugPrint('Error saving token: $e');
+    }
   }
 
   Future<String?> getToken() async {
-    return await _storage.read(key: _tokenKey);
+    try {
+      return await _storage.read(key: _tokenKey).timeout(
+        const Duration(seconds: 2),
+        onTimeout: () => null,
+      );
+    } catch (e) {
+      debugPrint('Error reading token: $e');
+      return null;
+    }
   }
 
   Future<void> clearToken() async {
-    await _storage.delete(key: _tokenKey);
+    try {
+      await _storage.delete(key: _tokenKey);
+    } catch (e) {
+      debugPrint('Error clearing token: $e');
+    }
   }
 
   Future<bool> isLoggedIn() async {
@@ -83,13 +99,20 @@ class ApiService {
   static const String _deviceIdKey = 'device_id';
 
   Future<String> getDeviceId() async {
-    String? deviceId = await _storage.read(key: _deviceIdKey);
-    if (deviceId == null || deviceId.isEmpty) {
-      deviceId =
-          'DEV-${DateTime.now().millisecondsSinceEpoch}-${(1000 + (DateTime.now().microsecondsSinceEpoch % 9000))}';
-      await _storage.write(key: _deviceIdKey, value: deviceId);
+    try {
+      String? deviceId = await _storage.read(key: _deviceIdKey).timeout(
+        const Duration(seconds: 2),
+        onTimeout: () => null,
+      );
+      if (deviceId == null || deviceId.isEmpty) {
+        deviceId =
+            'DEV-${DateTime.now().millisecondsSinceEpoch}-${(1000 + (DateTime.now().microsecondsSinceEpoch % 9000))}';
+        await _storage.write(key: _deviceIdKey, value: deviceId);
+      }
+      return deviceId;
+    } catch (e) {
+      return 'DEV-${DateTime.now().millisecondsSinceEpoch}';
     }
-    return deviceId;
   }
 
   // ─── Auth ──────────────────────────────────────
@@ -177,7 +200,7 @@ class ApiService {
 
   Future<Response> exportAttendancePdf({int? year, int? month}) async {
     return await _dio.get(
-      '${ApiConfig.baseUrl}/attendance/export-pdf',
+      '${ApiConfig.baseUrl}/statistics/pdf',
       queryParameters: {'year': year, 'month': month},
     );
   }
@@ -357,13 +380,15 @@ class ApiService {
       '${ApiConfig.baseUrl}/events/scan',
       data: {
         'qr_token': qrToken,
+        // ignore: use_null_aware_elements
         if (latitude != null) 'latitude': latitude,
+        // ignore: use_null_aware_elements
         if (longitude != null) 'longitude': longitude,
       },
     );
   }
 
-  // ─── Ranking ───────────────────────────────────
+  // ─── Ranking & Reports ───────────────────────────
   Future<Response> getRanking({
     required String scope,
     int? month,
@@ -373,5 +398,26 @@ class ApiService {
       ApiConfig.ranking,
       queryParameters: {'scope': scope, 'month': month, 'year': year},
     );
+  }
+
+  String getMonthlyReportPdfUrl({required int month, required int year}) {
+    return '${ApiConfig.baseUrl}/statistics/pdf?month=$month&year=$year';
+  }
+
+  Future<int> pingServer() async {
+    final Stopwatch stopwatch = Stopwatch()..start();
+    try {
+      final response = await _dio.get(
+        ApiConfig.me,
+        options: Options(sendTimeout: const Duration(seconds: 3), receiveTimeout: const Duration(seconds: 3)),
+      );
+      stopwatch.stop();
+      if (response.statusCode == 200) {
+        return stopwatch.elapsedMilliseconds;
+      }
+      return -1;
+    } catch (_) {
+      return -1;
+    }
   }
 }

@@ -48,22 +48,34 @@ class _SplashScreenState extends State<SplashScreen>
     );
 
     _controller.forward();
-    _checkAuth();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAuth();
+    });
   }
 
   Future<void> _checkAuth() async {
-    await Future.delayed(const Duration(seconds: 3));
+    bool isLoggedIn = false;
+    try {
+      final auth = context.read<AuthProvider>();
+      isLoggedIn = await auth.checkAuth().timeout(
+        const Duration(seconds: 2),
+        onTimeout: () => false,
+      );
+    } catch (e) {
+      debugPrint('Splash checkAuth error: $e');
+      isLoggedIn = false;
+    }
+
+    await Future.delayed(const Duration(milliseconds: 1000));
     if (!mounted) return;
 
-    final auth = context.read<AuthProvider>();
-    final isLoggedIn = await auth.checkAuth();
-
-    if (mounted) {
-      if (isLoggedIn) {
+    if (isLoggedIn) {
+      try {
         NotificationService().scheduleAttendanceAlarms();
-      }
-      Navigator.pushReplacementNamed(context, isLoggedIn ? '/home' : '/login');
+      } catch (_) {}
     }
+
+    Navigator.pushReplacementNamed(context, isLoggedIn ? '/home' : '/login');
   }
 
   @override

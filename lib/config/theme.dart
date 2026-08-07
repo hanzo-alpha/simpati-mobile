@@ -80,7 +80,10 @@ class AppTheme {
 
   // Divider & Borders
   static Color dividerColor(BuildContext context) =>
-      isDark(context) ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+      isDark(context) ? Colors.white.withAlpha(25) : const Color(0xFFE2E8F0);
+
+  static Color borderSoft(BuildContext context) =>
+      isDark(context) ? Colors.white.withAlpha(25) : const Color(0xFFE2E8F0);
 
   // ─── Light Theme Data (Web Aligned) ─────────────
   static ThemeData get lightTheme {
@@ -88,6 +91,11 @@ class AppTheme {
       useMaterial3: true,
       brightness: Brightness.light,
       scaffoldBackgroundColor: const Color(0xFFF8FAFC),
+      dividerColor: const Color(0xFFE2E8F0),
+      dividerTheme: const DividerThemeData(
+        color: Color(0xFFE2E8F0),
+        thickness: 1,
+      ),
       colorScheme: const ColorScheme.light(
         primary: emerald600,
         secondary: emerald500,
@@ -139,7 +147,10 @@ class AppTheme {
       ),
       cardTheme: CardThemeData(
         color: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: Color(0xFFE2E8F0)),
+        ),
         elevation: 2,
         shadowColor: Colors.black.withAlpha(15),
       ),
@@ -152,6 +163,11 @@ class AppTheme {
       useMaterial3: true,
       brightness: Brightness.dark,
       scaffoldBackgroundColor: slate900,
+      dividerColor: const Color(0xFF334155).withAlpha(120),
+      dividerTheme: DividerThemeData(
+        color: Colors.white.withAlpha(25),
+        thickness: 1,
+      ),
       colorScheme: const ColorScheme.dark(
         primary: emerald500,
         secondary: emerald600,
@@ -186,11 +202,11 @@ class AppTheme {
         fillColor: slate800.withAlpha(180),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: slate700),
+          borderSide: BorderSide(color: Colors.white.withAlpha(25)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: slate700),
+          borderSide: BorderSide(color: Colors.white.withAlpha(25)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
@@ -203,7 +219,10 @@ class AppTheme {
       ),
       cardTheme: CardThemeData(
         color: slate800,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: Colors.white.withAlpha(25)),
+        ),
         elevation: 0,
       ),
     );

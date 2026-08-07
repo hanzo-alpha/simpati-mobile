@@ -4,6 +4,8 @@ import '../../config/theme.dart';
 import '../../providers/theme_provider.dart';
 import '../../services/biometric_service.dart';
 import '../../services/reminder_service.dart';
+import '../../services/api_service.dart';
+import '../../services/offline_sync_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -15,14 +17,33 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final ReminderService _reminderService = ReminderService();
   final BiometricService _biometricService = BiometricService();
+  final ApiService _apiService = ApiService();
   bool _reminderEnabled = true;
   bool _biometricEnabled = false;
   bool _biometricAvailable = false;
+  int _pingMs = -1;
+  bool _isPinging = false;
+  int _offlineQueueCount = 0;
 
   @override
   void initState() {
     super.initState();
     _loadSettings();
+    _checkServerPing();
+  }
+
+  Future<void> _checkServerPing() async {
+    if (_isPinging) return;
+    setState(() => _isPinging = true);
+    final ms = await _apiService.pingServer();
+    final queue = await OfflineSyncService().getPendingQueueCount();
+    if (mounted) {
+      setState(() {
+        _pingMs = ms;
+        _offlineQueueCount = queue;
+        _isPinging = false;
+      });
+    }
   }
 
   Future<void> _loadSettings() async {
@@ -111,6 +132,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   : null,
             ),
             icon: Icons.fingerprint_rounded,
+          ),
+          const Divider(height: 1),
+          _buildSectionHeader('Status Sistem & Diagnostik'),
+          _buildSettingTile(
+            title: 'Koneksi Server SIMPATI',
+            subtitle: _isPinging
+                ? 'Memeriksa responsivitas server...'
+                : (_pingMs >= 0
+                    ? 'Server Online (Latency: ${_pingMs}ms) | Antrean Offline: $_offlineQueueCount'
+                    : 'Server Terputus / Rintangan Jaringan'),
+            trailing: IconButton(
+              icon: _isPinging
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.teal500))
+                  : const Icon(Icons.refresh_rounded, color: AppTheme.teal500),
+              onPressed: _checkServerPing,
+            ),
+            icon: Icons.cell_tower_rounded,
           ),
           const Divider(height: 1),
           _buildSectionHeader('Informasi'),

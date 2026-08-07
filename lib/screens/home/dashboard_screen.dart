@@ -265,34 +265,6 @@ class _DashboardScreenState extends State<DashboardScreen>
                               ),
                               Row(
                                 children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(6),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withAlpha(30),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: Colors.white.withAlpha(40),
-                                      ),
-                                    ),
-                                    child: Image.asset(
-                                      'assets/images/logo_clean.png',
-                                      width: 22,
-                                      height: 22,
-                                      fit: BoxFit.contain,
-                                      errorBuilder: (c, e, s) => Image.asset(
-                                        'assets/images/logo.png',
-                                        width: 22,
-                                        height: 22,
-                                        fit: BoxFit.contain,
-                                        errorBuilder: (c2, e2, s2) => const Icon(
-                                          Icons.shield_rounded,
-                                          size: 20,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
                                   IconButton(
                                     onPressed: () => Navigator.pushNamed(
                                       context,

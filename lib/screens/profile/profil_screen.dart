@@ -83,44 +83,49 @@ class ProfilScreen extends StatelessWidget {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      auth.userName,
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w900,
-                                        color: AppTheme.textPrimary(context),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      auth.userNip,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontFamily: 'monospace',
-                                        color: AppTheme.textSecondary(context),
-                                        letterSpacing: 1,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 10),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: AppTheme.teal500.withAlpha(30),
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: Text(
-                                        auth.userRole.toUpperCase(),
-                                        style: const TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.w800,
-                                          color: AppTheme.teal500,
-                                          letterSpacing: 0.5,
-                                        ),
-                                      ),
-                                    ),
+                                     SelectableText(
+                                       auth.userName,
+                                       style: TextStyle(
+                                         fontSize: 18,
+                                         fontWeight: FontWeight.w900,
+                                         color: AppTheme.textPrimary(context),
+                                         height: 1.2,
+                                       ),
+                                     ),
+                                     const SizedBox(height: 6),
+                                     SelectableText(
+                                       auth.userNip.isEmpty ? '-' : 'NIP. ${auth.userNip}',
+                                       style: TextStyle(
+                                         fontSize: 12,
+                                         fontFamily: 'monospace',
+                                         fontWeight: FontWeight.w700,
+                                         color: AppTheme.textSecondary(context),
+                                         letterSpacing: 0.5,
+                                       ),
+                                     ),
+                                     const SizedBox(height: 10),
+                                     Container(
+                                       padding: const EdgeInsets.symmetric(
+                                         horizontal: 12,
+                                         vertical: 5,
+                                       ),
+                                       decoration: BoxDecoration(
+                                         color: AppTheme.teal500.withAlpha(30),
+                                         borderRadius: BorderRadius.circular(20),
+                                         border: Border.all(
+                                           color: AppTheme.teal500.withAlpha(80),
+                                         ),
+                                       ),
+                                       child: Text(
+                                         auth.userRole.toUpperCase(),
+                                         style: const TextStyle(
+                                           fontSize: 10,
+                                           fontWeight: FontWeight.w800,
+                                           color: AppTheme.teal500,
+                                           letterSpacing: 0.8,
+                                         ),
+                                       ),
+                                     ),
                                   ],
                                 ),
                               ),
@@ -193,14 +198,7 @@ class ProfilScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                _buildModernMenuTile(
-                  context,
-                  Icons.history_rounded,
-                  'Riwayat Pengajuan',
-                  () {
-                    Navigator.pushNamed(context, '/pengajuan');
-                  },
-                ),
+
                 _buildModernMenuTile(
                   context,
                   Icons.settings_rounded,
@@ -465,32 +463,46 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final displayValue = value.trim().isEmpty ? '-' : value;
+
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 18, color: AppTheme.textSecondary(context)),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 13,
-                color: AppTheme.textSecondary(context),
-                fontWeight: FontWeight.w500,
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: AppTheme.teal500.withAlpha(25),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, size: 16, color: AppTheme.teal500),
               ),
-            ),
+              const SizedBox(width: 10),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppTheme.textSecondary(context),
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ],
           ),
-          Flexible(
-            child: Text(
-              value,
+          const SizedBox(height: 6),
+          Padding(
+            padding: const EdgeInsets.only(left: 32),
+            child: SelectableText(
+              displayValue,
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w800,
                 color: AppTheme.textPrimary(context),
+                height: 1.4,
               ),
-              textAlign: TextAlign.right,
-              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
