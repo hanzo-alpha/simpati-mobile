@@ -1,4 +1,4 @@
-package com.soppengkab.simpati_mobile
+package com.soppeng.simpati_mobile
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 

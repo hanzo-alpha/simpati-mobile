@@ -7,6 +7,7 @@ import '../../config/theme.dart';
 import '../../services/api_service.dart';
 import '../../services/offline_sync_service.dart';
 import '../../config/enums.dart';
+import 'event_presensi_screen.dart';
 import 'front_camera_selfie_screen.dart';
 
 class PresensiScreen extends StatefulWidget {
@@ -532,9 +533,25 @@ class _PresensiScreenState extends State<PresensiScreen> {
                     ),
                   ],
                 ),
-                _buildGlassIconButton(
-                  icon: Icons.history_rounded,
-                  onTap: () {},
+                Row(
+                  children: [
+                    _buildGlassIconButton(
+                      icon: Icons.qr_code_scanner_rounded,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const EventPresensiScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(width: 8),
+                    _buildGlassIconButton(
+                      icon: Icons.history_rounded,
+                      onTap: () {},
+                    ),
+                  ],
                 ),
               ],
             ),

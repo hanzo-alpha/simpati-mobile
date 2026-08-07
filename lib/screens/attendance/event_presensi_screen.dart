@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:provider/provider.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
+import 'qr_scanner_screen.dart';
 
 class EventPresensiScreen extends StatefulWidget {
   const EventPresensiScreen({super.key});
@@ -21,6 +25,109 @@ class _EventPresensiScreenState extends State<EventPresensiScreen> {
   void initState() {
     super.initState();
     _loadEvents();
+  }
+
+  Future<void> _scanQrWithCamera() async {
+    final scannedCode = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (context) => const QrScannerScreen()),
+    );
+
+    if (scannedCode != null && scannedCode.isNotEmpty) {
+      _tokenController.text = scannedCode;
+      _submitToken(scannedCode);
+    }
+  }
+
+  void _showMyQrDialog() {
+    final auth = context.read<AuthProvider>();
+    final nip = auth.userNip.isNotEmpty
+        ? auth.userNip
+        : (auth.user?['id']?.toString() ?? 'ASN-SOPPENG');
+    final name = auth.userName;
+    final opd = auth.userOpdName;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Column(
+          children: [
+            const Icon(Icons.qr_code_2, size: 44, color: Color(0xFF0D9488)),
+            const SizedBox(height: 8),
+            const Text(
+              'Kartu QR Presensi ASN',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            Text(
+              name,
+              style: const TextStyle(fontSize: 13, color: Colors.grey),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withAlpha(20),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: QrImageView(
+                data: nip,
+                version: QrVersions.auto,
+                size: 200.0,
+                backgroundColor: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.teal.shade50,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    'NIP: $nip',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.teal.shade900,
+                    ),
+                  ),
+                  Text(
+                    opd,
+                    style: TextStyle(fontSize: 11, color: Colors.teal.shade800),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Tunjukkan QR Code ini ke Operator / Admin Apel untuk di-scan.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Tutup'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _loadEvents() async {
@@ -158,10 +265,82 @@ class _EventPresensiScreenState extends State<EventPresensiScreen> {
                             ),
                             const SizedBox(height: 8),
                             const Text(
-                              'Masukkan kode token QR (misal: SIMPATI-EVT-XXXXXX) yang ditampilkan pada layar proyektor acara.',
+                              'Gunakan kamera HP untuk scan QR Code di lokasi/proyektor, atau tunjukkan Kartu QR NIP ke Petugas Apel.',
                               style: TextStyle(fontSize: 12, color: Colors.grey),
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 14),
+
+                            // Main Action: Scan Kamera QR
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: _scanQrWithCamera,
+                                icon: const Icon(Icons.camera_alt, size: 20),
+                                label: const Text(
+                                  'Pindai QR Code dengan Kamera',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF0D9488),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(height: 10),
+
+                            // Action 2: Tampilkan Kartu QR Saya
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                onPressed: _showMyQrDialog,
+                                icon: const Icon(Icons.qr_code_2, color: Color(0xFF0D9488)),
+                                label: const Text(
+                                  'Tampilkan Kartu QR NIP Saya',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF0D9488),
+                                  ),
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(color: Color(0xFF0D9488)),
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 12),
+                              child: Row(
+                                children: [
+                                  Expanded(child: Divider()),
+                                  Padding(
+                                    padding: EdgeInsets.symmetric(horizontal: 8),
+                                    child: Text(
+                                      'ATAU INPUT TOKEN MANUAL',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(child: Divider()),
+                                ],
+                              ),
+                            ),
+
                             TextField(
                               controller: _tokenController,
                               textCapitalization: TextCapitalization.characters,
@@ -193,9 +372,9 @@ class _EventPresensiScreenState extends State<EventPresensiScreen> {
                                         ),
                                       )
                                     : const Icon(Icons.send),
-                                label: Text(_isSubmitting ? 'Memproses...' : 'Kirim Presensi Event'),
+                                label: Text(_isSubmitting ? 'Memproses...' : 'Kirim Token Manual'),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF0D9488),
+                                  backgroundColor: const Color(0xFF0F172A),
                                   foregroundColor: Colors.white,
                                   padding: const EdgeInsets.symmetric(vertical: 12),
                                   shape: RoundedRectangleBorder(
