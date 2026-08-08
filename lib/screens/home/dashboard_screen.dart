@@ -29,6 +29,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   final ApiService _api = ApiService();
   List<dynamic> _todayAttendances = [];
   List<dynamic> _announcements = [];
+  bool _isAnnouncementExpanded = false;
   Map<String, dynamic>? _office;
   Map<String, dynamic> _stats = {'hadir': '0', 'terlambat': '0', 'alpha': '0'};
   Map<String, dynamic>? _tppSummary;
@@ -1128,6 +1129,11 @@ class _DashboardScreenState extends State<DashboardScreen>
   }
 
   Widget _buildAnnouncementBanner() {
+    final ann = _announcements[0];
+    final title = ann['judul'] ?? '';
+    final content = ann['konten'] ?? '';
+    final category = (ann['kategori'] ?? 'informasi').toString().toUpperCase();
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -1158,7 +1164,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  (_announcements[0]['kategori'] ?? 'informasi').toString().toUpperCase(),
+                  category,
                   style: const TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w900,
@@ -1178,26 +1184,70 @@ class _DashboardScreenState extends State<DashboardScreen>
                   ),
                 ),
               ),
+              if (_announcements.length > 1)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withAlpha(30),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '1/${_announcements.length}',
+                    style: const TextStyle(fontSize: 10, color: Colors.white),
+                  ),
+                ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Text(
-            _announcements[0]['judul'] ?? '',
+            title,
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w900,
               color: Colors.white,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
-            _announcements[0]['konten'] ?? '',
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
+            content,
+            maxLines: _isAnnouncementExpanded ? null : 3,
+            overflow: _isAnnouncementExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
             style: const TextStyle(
               fontSize: 12,
               color: Colors.white70,
-              height: 1.3,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 8),
+          InkWell(
+            onTap: () {
+              setState(() {
+                _isAnnouncementExpanded = !_isAnnouncementExpanded;
+              });
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _isAnnouncementExpanded ? 'Lihat Lebih Sedikit' : 'Baca Selengkapnya...',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.tealAccent,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    _isAnnouncementExpanded
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
+                    color: Colors.tealAccent,
+                    size: 18,
+                  ),
+                ],
+              ),
             ),
           ),
         ],

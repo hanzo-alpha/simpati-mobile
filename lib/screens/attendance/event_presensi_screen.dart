@@ -454,22 +454,40 @@ class _EventPresensiScreenState extends State<EventPresensiScreen> {
                                         decoration: BoxDecoration(
                                           color: isAttended
                                               ? Colors.green.shade50
-                                              : Colors.orange.shade50,
+                                              : (evt['is_expired'] == true || evt['status'] == 'selesai')
+                                                  ? Colors.grey.shade100
+                                                  : evt['status'] == 'mendatang'
+                                                      ? Colors.blue.shade50
+                                                      : Colors.orange.shade50,
                                           borderRadius: BorderRadius.circular(6),
                                           border: Border.all(
                                             color: isAttended
                                                 ? Colors.green.shade300
-                                                : Colors.orange.shade300,
+                                                : (evt['is_expired'] == true || evt['status'] == 'selesai')
+                                                    ? Colors.grey.shade300
+                                                    : evt['status'] == 'mendatang'
+                                                        ? Colors.blue.shade300
+                                                        : Colors.orange.shade300,
                                           ),
                                         ),
                                         child: Text(
-                                          isAttended ? 'SUDAH PRESENSI' : 'BELUM PRESENSI',
+                                          isAttended
+                                              ? 'SUDAH PRESENSI'
+                                              : (evt['is_expired'] == true || evt['status'] == 'selesai')
+                                                  ? 'EVENT SELESAI'
+                                                  : evt['status'] == 'mendatang'
+                                                      ? 'BELUM DIMULAI'
+                                                      : 'BELUM PRESENSI',
                                           style: TextStyle(
                                             fontSize: 10,
                                             fontWeight: FontWeight.bold,
                                             color: isAttended
                                                 ? Colors.green.shade700
-                                                : Colors.orange.shade800,
+                                                : (evt['is_expired'] == true || evt['status'] == 'selesai')
+                                                    ? Colors.grey.shade700
+                                                    : evt['status'] == 'mendatang'
+                                                        ? Colors.blue.shade800
+                                                        : Colors.orange.shade800,
                                           ),
                                         ),
                                       ),
@@ -504,7 +522,7 @@ class _EventPresensiScreenState extends State<EventPresensiScreen> {
                                       ),
                                     ],
                                   ),
-                                  if (!isAttended) ...[
+                                  if (!isAttended && evt['is_expired'] != true && evt['status'] != 'selesai') ...[
                                     const SizedBox(height: 10),
                                     SizedBox(
                                       width: double.infinity,
